@@ -1,0 +1,4 @@
+project_id = "sxsgukgqyvdypsssumrr"
+
+[functions.tiny-ai]
+verify_jwt = false
