@@ -10,6 +10,7 @@ import type { TroopDashboard, TroopSegmentEntry, ScoutPortableRecord } from "@/t
 import { TroopSegments } from "@/components/scout/TroopSegments";
 import { useAuth } from "@/providers/AuthProvider";
 import { ArrowLeft, Award, Clock, Shield, ChevronRight } from "lucide-react";
+import { userNeedsOnboarding } from "@/lib/onboarding";
 
 const BADGE_FAMILIES = [
   "Cookie Entrepreneur", "STEM", "Outdoor Adventure", "Leadership",
@@ -40,7 +41,7 @@ type View = "dashboard" | "create_troop" | "add_scout" | "award_credential" | "s
 
 export const LeaderDashboardPage = () => {
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const [dashboard, setDashboard] = useState<TroopDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [resetLoading, setResetLoading] = useState(false);
@@ -88,8 +89,12 @@ export const LeaderDashboardPage = () => {
   };
 
   useEffect(() => {
+    if (user?.role === "scout_leader" && userNeedsOnboarding(user)) {
+      navigate("/onboarding/leader");
+      return;
+    }
     fetchDashboard();
-  }, []);
+  }, [navigate, user]);
 
   const allScouts: TroopSegmentEntry[] = dashboard
     ? [

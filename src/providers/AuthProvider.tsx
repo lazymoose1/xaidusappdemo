@@ -16,7 +16,6 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   profileStatus: ProfileStatus;
-  authUnavailableReason: string | null;
   retryProfile: () => void;
   signUp: (email: string, password: string, displayName?: string) => Promise<{ error: Error | null }>;
   signUpParent: (email: string, password: string, displayName?: string, childName?: string) => Promise<{ error: Error | null }>;
@@ -43,7 +42,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<ApiUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [authUnavailableReason] = useState<string | null>(supabaseConfigErrorMessage);
   // profileStatus is separate from loading — loading covers the initial session check,
   // profileStatus covers the async backend profile fetch that follows.
   const [profileStatus, setProfileStatus] = useState<ProfileStatus>('idle');
@@ -276,7 +274,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const contextValue: AuthContextType = {
-    user, session, loading, profileStatus, authUnavailableReason, retryProfile,
+    user, session, loading, profileStatus, retryProfile,
     signUp, signUpParent, signUpLeader, signIn, scoutSignIn, signOut, refreshProfile,
   };
 

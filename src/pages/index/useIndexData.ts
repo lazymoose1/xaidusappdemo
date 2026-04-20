@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from "react";
 import { goalsApi } from "@/api/endpoints";
 import { useAuth } from "@/providers/AuthProvider";
 import { getLifetimeBadges } from "@/lib/badges";
+import { userNeedsOnboarding } from "@/lib/onboarding";
 import { toast } from "@/hooks/use-toast";
 import type { ApiGoal, ApiTodayGoal } from "@/types/api";
 
@@ -108,12 +109,7 @@ export function useIndexData() {
     [completedCount, seasonComplete]
   );
 
-  const needsOnboarding = useMemo(() => {
-    if (!user) return true;
-    const interests = Array.isArray(user.interests) ? user.interests : [];
-    const archetype = typeof user.archetype === "string" ? user.archetype : "";
-    return interests.length < 3 || archetype.length === 0;
-  }, [user]);
+  const needsOnboarding = useMemo(() => userNeedsOnboarding(user), [user]);
 
   return {
     user,

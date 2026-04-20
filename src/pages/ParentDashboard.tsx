@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { parentPortalApi } from "@/api/endpoints";
 import type { ApiParentChild, ApiWeeklySummary } from "@/types/api";
+import { useAuth } from "@/providers/AuthProvider";
+import { userNeedsOnboarding } from "@/lib/onboarding";
 
 const fallbackSnapshot: ApiWeeklySummary = {
   goalsSet: 0,
@@ -22,9 +24,16 @@ const fallbackSnapshot: ApiWeeklySummary = {
 
 const ParentDashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [weeklySnapshot, setWeeklySnapshot] = useState<ApiWeeklySummary>(fallbackSnapshot);
   const [teens, setTeens] = useState<ApiParentChild[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user?.role === "parent" && userNeedsOnboarding(user)) {
+      navigate("/onboarding/parent");
+    }
+  }, [navigate, user]);
 
   useEffect(() => {
     const loadWeeklySnapshot = async () => {

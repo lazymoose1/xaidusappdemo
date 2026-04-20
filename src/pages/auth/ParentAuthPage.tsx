@@ -15,7 +15,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Loader2, ShieldCheck, MessageSquareOff, Award } from "lucide-react";
 import BrandWordmark from "@/components/BrandWordmark";
-import { SupabaseConfigNotice } from "@/components/SupabaseConfigNotice";
+import { AuthExplainer } from "@/components/AuthExplainer";
 
 const validateEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
@@ -37,8 +37,6 @@ const ParentAuthPage = () => {
   const [showCreatePassword, setShowCreatePassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [inviteCode, setInviteCode] = useState("");
-
   const [activeTab, setActiveTab] = useState<"signin" | "create">("signin");
 
   useEffect(() => {
@@ -62,7 +60,7 @@ const ParentAuthPage = () => {
         toast({ title: "Sign in failed", description: "We couldn't sign you in with those details.", variant: "destructive" });
         return;
       }
-      navigate("/");
+      navigate("/dashboard");
     } finally {
       setLoading(false);
     }
@@ -88,13 +86,13 @@ const ParentAuthPage = () => {
     }
     setLoading(true);
     try {
-      const { error } = await signUpParent(createEmail, createPassword, fullName, inviteCode || undefined);
+      const { error } = await signUpParent(createEmail, createPassword, fullName);
       if (error) {
         toast({ title: "Account creation failed", description: error.message, variant: "destructive" });
         return;
       }
-      toast({ title: "Account created", description: "Parent account created. You can now sign in and connect to your teen's progress summary." });
-      navigate("/");
+      toast({ title: "Account created", description: "Parent account created. Next we'll tailor your dashboard and support style." });
+      navigate("/onboarding/parent");
     } finally {
       setLoading(false);
     }
@@ -122,7 +120,7 @@ const ParentAuthPage = () => {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          <SupabaseConfigNotice />
+          <AuthExplainer variant="parent" />
           {/* Phase II reframing — shown before the form */}
           <div className="space-y-3 pb-2">
             <div className="flex items-start gap-3">
@@ -316,27 +314,9 @@ const ParentAuthPage = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="inviteCode">
-                    Child or Family Invite Code{" "}
-                    <span className="text-muted-foreground font-normal">(optional)</span>
-                  </Label>
-                  <Input
-                    id="inviteCode"
-                    type="text"
-                    placeholder="Enter invite code"
-                    value={inviteCode}
-                    onChange={(e) => setInviteCode(e.target.value)}
-                    disabled={loading}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Use the code shared by your teen, troop leader, or school.
-                  </p>
-                </div>
-
                 <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
                   <p className="text-xs text-muted-foreground">
-                    You'll see effort and achievements — check-ins, streaks, badges. Never messages, posts, or private content.
+                    After account creation, you'll get a short parent setup where you choose your coaching style and optionally link your teen.
                   </p>
                 </div>
 

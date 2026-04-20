@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import BrandWordmark from "@/components/BrandWordmark";
+import { AuthExplainer } from "@/components/AuthExplainer";
 
 const ParentSignupPage = () => {
   const navigate = useNavigate();
@@ -15,7 +16,6 @@ const ParentSignupPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [childName, setChildName] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -37,8 +37,13 @@ const ParentSignupPage = () => {
       return;
     }
 
+    if (!displayName.trim()) {
+      toast({ title: "Your name is required", description: "Enter your name to create a parent account.", variant: "destructive" });
+      return;
+    }
+
     setLoading(true);
-    const { error } = await signUpParent(email, password, displayName, childName);
+    const { error } = await signUpParent(email, password, displayName.trim());
     setLoading(false);
 
     if (error) {
@@ -46,8 +51,8 @@ const ParentSignupPage = () => {
       return;
     }
 
-    toast({ title: "Welcome to Xaidus", description: "Parent account created." });
-    navigate("/parent-portal");
+    toast({ title: "Welcome to Xaidus", description: "Parent account created. Next we'll tailor your dashboard." });
+    navigate("/onboarding/parent");
   };
 
   return (
@@ -61,6 +66,7 @@ const ParentSignupPage = () => {
           <CardDescription className="text-center">Connect to weekly snapshots, effort trends, and calmer conversations.</CardDescription>
         </CardHeader>
         <CardContent>
+          <AuthExplainer variant="parent" />
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -90,24 +96,14 @@ const ParentSignupPage = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="displayName">Your name (optional)</Label>
+              <Label htmlFor="displayName">Your name</Label>
               <Input
                 id="displayName"
                 placeholder="e.g., Alex Garcia"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 autoComplete="name"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="childName">Teen's name (optional)</Label>
-              <Input
-                id="childName"
-                placeholder="Helps us label the first profile"
-                value={childName}
-                onChange={(e) => setChildName(e.target.value)}
-                autoComplete="off"
+                required
               />
             </div>
 
