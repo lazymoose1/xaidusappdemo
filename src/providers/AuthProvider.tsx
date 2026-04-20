@@ -1,6 +1,6 @@
 import { createContext, useContext, useCallback, useEffect, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { isSupabaseConfigured, supabase, supabaseConfigErrorMessage } from '@/integrations/supabase/client';
 import { normalizeArchetype, DEFAULT_ARCHETYPE } from '@/lib/archetypes';
 import type { ApiUser } from '@/types/api';
 import { authApi, scoutAuthApi } from '@/api/endpoints';
@@ -16,6 +16,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   profileStatus: ProfileStatus;
+  authUnavailableReason: string | null;
   retryProfile: () => void;
   signUp: (email: string, password: string, displayName?: string) => Promise<{ error: Error | null }>;
   signUpParent: (email: string, password: string, displayName?: string, childName?: string) => Promise<{ error: Error | null }>;
@@ -42,6 +43,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<ApiUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authUnavailableReason] = useState<string | null>(supabaseConfigErrorMessage);
   // profileStatus is separate from loading — loading covers the initial session check,
   // profileStatus covers the async backend profile fetch that follows.
   const [profileStatus, setProfileStatus] = useState<ProfileStatus>('idle');
@@ -90,6 +92,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setProfileStatus('idle');
         setLoading(false);
       });
+      return;
+    }
+
+    if (!isSupabaseConfigured) {
+      setSession(null);
+      setUser(null);
+      setProfileStatus('idle');
+      setLoading(false);
       return;
     }
 
@@ -156,6 +166,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setProfileStatus('loaded');
       return { error: null };
     }
+    if (!isSupabaseConfigured) {
+      return { error: new Error(supabaseConfigErrorMessage ?? 'Supabase is not configured.') };
+    }
     const { error } = await supabase.auth.signUp({ email, password });
     if (error) return { error };
     try {
@@ -174,6 +187,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setProfileStatus('loaded');
       return { error: null };
     }
+    if (!isSupabaseConfigured) {
+      return { error: new Error(supabaseConfigErrorMessage ?? 'Supabase is not configured.') };
+    }
     localStorage.removeItem(SCOUT_TOKEN_KEY);
     const { error } = await supabase.auth.signUp({ email, password });
     if (error) return { error };
@@ -188,6 +204,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signUpLeader = async (email: string, password: string, displayName?: string, leaderInviteCode?: string): Promise<{ error: Error | null }> => {
+    if (!isSupabaseConfigured) {
+      return { error: new Error(supabaseConfigErrorMessage ?? 'Supabase is not configured.') };
+    }
     localStorage.removeItem(SCOUT_TOKEN_KEY);
     const { error } = await supabase.auth.signUp({ email, password });
     if (error) return { error };
@@ -207,6 +226,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(createDemoUser());
       setProfileStatus('loaded');
       return { error: null };
+    }
+    if (!isSupabaseConfigured) {
+      return { error: new Error(supabaseConfigErrorMessage ?? 'Supabase is not configured.') };
     }
     // Clear any stale scout token — Supabase sign-in must not be overridden by it.
     localStorage.removeItem(SCOUT_TOKEN_KEY);
@@ -254,7 +276,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const contextValue: AuthContextType = {
-    user, session, loading, profileStatus, retryProfile,
+    user, session, loading, profileStatus, authUnavailableReason, retryProfile,
     signUp, signUpParent, signUpLeader, signIn, scoutSignIn, signOut, refreshProfile,
   };
 

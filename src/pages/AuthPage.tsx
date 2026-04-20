@@ -11,6 +11,7 @@ import { SocialSSOButtons } from "@/components/SocialSSOButtons";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { goalsApi } from "@/api/endpoints";
 import BrandWordmark from "@/components/BrandWordmark";
+import { SupabaseConfigNotice } from "@/components/SupabaseConfigNotice";
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -147,6 +148,7 @@ const AuthPage = () => {
           </div>
         </CardHeader>
         <CardContent>
+          <SupabaseConfigNotice />
           {authMode === 'scout' && (
             <form
               className="space-y-4"

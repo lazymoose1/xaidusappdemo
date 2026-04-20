@@ -22,6 +22,6 @@ vi.stubGlobal('import.meta', {
     VITE_API_BASE: 'http://localhost:4000',
     VITE_DEMO_MODE: 'false',
     VITE_SUPABASE_URL: 'https://test.supabase.co',
-    VITE_SUPABASE_ANON_KEY: 'test-anon-key',
+    VITE_SUPABASE_PUBLISHABLE_KEY: 'test-anon-key',
   },
 });

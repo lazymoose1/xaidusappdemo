@@ -15,6 +15,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Loader2, ShieldCheck, MessageSquareOff, Award } from "lucide-react";
 import BrandWordmark from "@/components/BrandWordmark";
+import { SupabaseConfigNotice } from "@/components/SupabaseConfigNotice";
 
 const validateEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
@@ -121,6 +122,7 @@ const ParentAuthPage = () => {
         </CardHeader>
 
         <CardContent className="space-y-6">
+          <SupabaseConfigNotice />
           {/* Phase II reframing — shown before the form */}
           <div className="space-y-3 pb-2">
             <div className="flex items-start gap-3">

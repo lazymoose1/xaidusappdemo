@@ -15,6 +15,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import BrandWordmark from "@/components/BrandWordmark";
+import { SupabaseConfigNotice } from "@/components/SupabaseConfigNotice";
 
 const validateEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
@@ -132,6 +133,7 @@ const LeaderAuthPage = () => {
         </CardHeader>
 
         <CardContent>
+          <SupabaseConfigNotice />
           <Tabs
             value={activeTab}
             onValueChange={(v) => setActiveTab(v as "signin" | "create")}
