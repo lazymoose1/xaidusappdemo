@@ -9,6 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { User, Image, Video, Type, Users, Target } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import ThemeModeRow from "@/components/ThemeModeRow";
 import { supabase } from "@/integrations/supabase/client";
 
 interface SettingsModalProps {
@@ -118,6 +119,8 @@ const SettingsModal = ({ open, onOpenChange }: SettingsModalProps) => {
 
         <ScrollArea className="max-h-[65vh] pr-4">
           <div className="space-y-6 pt-2 pb-4">
+            <ThemeModeRow />
+
             {/* User Info */}
             <div>
               <h3 className="text-sm font-semibold text-muted-foreground mb-3">User Info</h3>

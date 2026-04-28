@@ -1,16 +1,34 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { toast } from "@/hooks/use-toast";
 import { troopApi, scoutAuthApi } from "@/api/endpoints";
-import type { TroopDashboard, TroopSegmentEntry, ScoutPortableRecord } from "@/types/api";
+import type { CreateLeaderSupportNoteInput, LeaderSupportProfile, TroopDashboard, TroopSegmentEntry, ScoutPortableRecord } from "@/types/api";
 import { TroopSegments } from "@/components/scout/TroopSegments";
 import { useAuth } from "@/providers/AuthProvider";
-import { ArrowLeft, Award, Clock, Shield, ChevronRight } from "lucide-react";
-import { userNeedsOnboarding } from "@/lib/onboarding";
+import { exportLeaderReport } from "@/lib/leader-report-export";
+import { ArrowLeft, Award, Shield, ChevronRight, TrendingUp, Users, Sparkles, Search, CalendarClock, AlertCircle, ClipboardList, Download, Gift, HeartHandshake, BookOpen } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 const BADGE_FAMILIES = [
   "Cookie Entrepreneur", "STEM", "Outdoor Adventure", "Leadership",
@@ -37,15 +55,116 @@ const credentialLabel: Record<string, string> = {
   badge: "Badge 📛",
 };
 
-type View = "dashboard" | "create_troop" | "add_scout" | "award_credential" | "scout_record";
+const SUPPORT_TAG_OPTIONS: NonNullable<CreateLeaderSupportNoteInput["tags"]> = [
+  "outreach_attempted",
+  "youth_responded",
+  "missed_appointment",
+  "goal_planning_help",
+  "accountability_support",
+  "needs_escalation",
+  "resolved",
+];
+
+const supportTagLabel: Record<string, string> = {
+  outreach_attempted: "Outreach attempted",
+  youth_responded: "Youth responded",
+  missed_appointment: "Missed appointment",
+  goal_planning_help: "Goal planning help",
+  accountability_support: "Accountability support",
+  needs_escalation: "Needs added support",
+  resolved: "Resolved",
+};
+
+type View = "dashboard" | "create_troop" | "add_scout" | "award_credential" | "scout_record" | "support_profile";
+type QueueFilter = "needs_attention" | "follow_up_due" | "stalled" | "all_ok" | "all";
+type QueueSort = "urgency" | "inactivity" | "follow_up" | "name";
+
+const LEADER_GUIDE_STEPS = [
+  {
+    title: "What this workspace is for",
+    body: "This is a caseload support workspace for Resource Support Specialists. Start here when you need to see who needs support, what follow-up is due, and what the next practical action should be.",
+    takeaways: ["Support youth without adding admin burden.", "Use the portal to prioritize next steps, not to monitor private life."],
+  },
+  {
+    title: "What you can do here",
+    body: "You can review progress signals, document support work, assign follow-up, and recognize effort. The portal is designed for coaching and continuity, not surveillance.",
+    takeaways: ["Support notes and follow-up are core actions.", "Recognition matters just as much as intervention."],
+  },
+  {
+    title: "Who appears in your caseload",
+    body: "You’ll see youth connected to your program, group, or cohort. The main queue is built so you can scan many youth quickly before opening an individual support view.",
+    takeaways: ["Use the queue first.", "Open a youth view only when you need more context."],
+  },
+  {
+    title: "What data is shown",
+    body: "The portal highlights goal progress, check-in consistency, follow-up dates, support status, service hours, recognitions, and staff notes. These are the signals most useful for youth support work.",
+    takeaways: ["You are seeing support signals, not a raw activity feed.", "The goal is fast context for follow-up."],
+  },
+  {
+    title: "What is intentionally not shown",
+    body: "You will not see private reflections in full, browsing history, private messages, or hidden monitoring data. The portal stays within role-safe boundaries so youth dignity stays intact.",
+    takeaways: ["This is not a forensic profile.", "Private content stays private unless product rules explicitly say otherwise."],
+  },
+  {
+    title: "Start with Needs attention now",
+    body: "This is the main action queue. It surfaces youth who may need outreach, have missed check-ins, show stalled momentum, or already have follow-up waiting.",
+    takeaways: ["If you only have a minute, start here.", "This section should tell you who needs support right now."],
+  },
+  {
+    title: "Use filters to narrow your day",
+    body: "Use search, status filters, and sorting to move from a full caseload view to the exact youth who need action first. This is especially useful when you are triaging a busy day.",
+    takeaways: ["Filter by urgency, follow-up due, or stalled progress.", "Sort when you need the clearest action order."],
+  },
+  {
+    title: "Follow-ups due",
+    body: "This section shows youth who already have a next step or follow-up date connected to support notes. It helps you keep promises, close loops, and avoid losing track of outreach.",
+    takeaways: ["Use this to keep support work moving.", "Overdue follow-up usually deserves attention before new reporting."],
+  },
+  {
+    title: "Recognition stays visible",
+    body: "Recognition is placed high on purpose. It helps you see whether youth are being acknowledged for progress, completions, service, and consistency, not only contacted when something slips.",
+    takeaways: ["Recognition is part of support, not an extra.", "A healthy caseload includes positive reinforcement."],
+  },
+  {
+    title: "Use Give recognition",
+    body: "Use this action to document milestones, awards, and service hours. It strengthens the youth’s record and helps staff reinforce effort instead of only reacting to setbacks.",
+    takeaways: ["Use it when growth deserves to be named.", "Recognition builds the record youth can carry forward."],
+  },
+  {
+    title: "Open the youth support view",
+    body: "Open an individual support view when you need a fuller picture. It brings together recent activity, active goals, notes, recognitions, support signals, and next follow-up in one place.",
+    takeaways: ["This is your one-person support page.", "It should answer what is going on and what to do next."],
+  },
+  {
+    title: "Keep support notes short",
+    body: "Support notes are meant to be practical, not essay-length. Use them to log outreach, record what happened, set a next step, and assign a follow-up date.",
+    takeaways: ["Short notes are easier to maintain.", "A note is strongest when it ends with a clear next step."],
+  },
+  {
+    title: "Use charts for planning, not triage",
+    body: "The trend views summarize completions, check-ins, and support status across the group. They help with reporting and planning, but they should not pull attention away from the support queue.",
+    takeaways: ["Charts come after action.", "Use them to explain patterns, not to replace judgment."],
+  },
+  {
+    title: "Exports and reporting",
+    body: "Export report creates a support summary in Excel, Word, or PDF. Use it when you need to brief supervisors, county partners, or program stakeholders with clean outcome-oriented reporting.",
+    takeaways: ["Export after your notes and follow-up are current.", "The report is meant to save staff time, not create extra formatting work."],
+  },
+  {
+    title: "Best day-to-day workflow",
+    body: "A strong rhythm is: review the queue, open a support view, log a note, set a follow-up, recognize progress when it is earned, and export a report only when you actually need to brief someone.",
+    takeaways: ["Queue first.", "Follow-up second.", "Recognition and reporting support the work instead of replacing it."],
+  },
+] as const;
 
 export const LeaderDashboardPage = () => {
   const navigate = useNavigate();
-  const { signOut, user } = useAuth();
   const [dashboard, setDashboard] = useState<TroopDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [resetLoading, setResetLoading] = useState(false);
   const [view, setView] = useState<View>("dashboard");
+  const [showGuide, setShowGuide] = useState(false);
+  const [guideStep, setGuideStep] = useState(0);
 
   // Troop creation form
   const [troopName, setTroopName] = useState("");
@@ -70,6 +189,17 @@ export const LeaderDashboardPage = () => {
   // Scout record view
   const [scoutRecord, setScoutRecord] = useState<ScoutPortableRecord | null>(null);
   const [recordLoading, setRecordLoading] = useState(false);
+  const [supportProfile, setSupportProfile] = useState<LeaderSupportProfile | null>(null);
+  const [supportProfileLoading, setSupportProfileLoading] = useState(false);
+  const [queueFilter, setQueueFilter] = useState<QueueFilter>("needs_attention");
+  const [queueSort, setQueueSort] = useState<QueueSort>("urgency");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [supportNote, setSupportNote] = useState("");
+  const [supportNextStep, setSupportNextStep] = useState("");
+  const [supportFollowUpDate, setSupportFollowUpDate] = useState("");
+  const [supportStatus, setSupportStatus] = useState<CreateLeaderSupportNoteInput["status"]>("needs_support");
+  const [supportTags, setSupportTags] = useState<NonNullable<CreateLeaderSupportNoteInput["tags"]>>([]);
+  const [savingSupportNote, setSavingSupportNote] = useState(false);
 
   const fetchDashboard = async () => {
     try {
@@ -89,12 +219,16 @@ export const LeaderDashboardPage = () => {
   };
 
   useEffect(() => {
-    if (user?.role === "scout_leader" && userNeedsOnboarding(user)) {
-      navigate("/onboarding/leader");
-      return;
-    }
     fetchDashboard();
-  }, [navigate, user]);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const guideSeen = window.localStorage.getItem("leader-portal-guide-seen");
+    if (!guideSeen) {
+      setShowGuide(true);
+    }
+  }, []);
 
   const allScouts: TroopSegmentEntry[] = dashboard
     ? [
@@ -239,23 +373,194 @@ export const LeaderDashboardPage = () => {
     }
   };
 
+  const openSupportProfile = async (scoutId: string) => {
+    setView("support_profile");
+    setSupportProfileLoading(true);
+    try {
+      const profile = await troopApi.getScoutSupportProfile(scoutId);
+      setSupportProfile(profile);
+      setSupportNote("");
+      setSupportNextStep(profile.supportNotes[0]?.nextStep || "");
+      setSupportFollowUpDate(
+        profile.nextFollowUp ? new Date(profile.nextFollowUp).toISOString().slice(0, 10) : "",
+      );
+      setSupportStatus(profile.summary.supportStatus);
+      setSupportTags([]);
+    } catch {
+      toast({ title: "Couldn't load support profile", variant: "destructive" });
+      setView("dashboard");
+    } finally {
+      setSupportProfileLoading(false);
+    }
+  };
+
+  const toggleSupportTag = (tag: NonNullable<CreateLeaderSupportNoteInput["tags"]>[number]) => {
+    setSupportTags((current) =>
+      current.includes(tag) ? current.filter((item) => item !== tag) : [...current, tag],
+    );
+  };
+
+  const saveSupportNote = async () => {
+    if (!supportProfile?.scout.id || !supportNote.trim()) {
+      toast({ title: "Add a support note first", variant: "destructive" });
+      return;
+    }
+
+    setSavingSupportNote(true);
+    try {
+      await troopApi.addSupportNote(supportProfile.scout.id, {
+        note: supportNote.trim(),
+        tags: supportTags,
+        nextStep: supportNextStep.trim() || undefined,
+        followUpDate: supportFollowUpDate || undefined,
+        status: supportStatus,
+      });
+      toast({ title: "Support note saved" });
+      await fetchDashboard();
+      await openSupportProfile(supportProfile.scout.id);
+    } catch (err: any) {
+      toast({ title: "Couldn't save support note", description: err?.message, variant: "destructive" });
+    } finally {
+      setSavingSupportNote(false);
+    }
+  };
+
+  const openAwardCredentialForScout = (scoutId?: string) => {
+    if (scoutId) setCredentialScoutId(scoutId);
+    setCredentialType("badge_milestone");
+    setCredentialTitle("");
+    setServiceHours("");
+    setServiceProject("");
+    setServiceDesc("");
+    setView("award_credential");
+  };
+
+  const handleExportReport = (format: "excel" | "word" | "pdf") => {
+    if (!dashboard) return;
+    exportLeaderReport(format, dashboard, view === "support_profile" ? supportProfile : null);
+    toast({ title: "Report downloaded", description: `Saved support report as ${format.toUpperCase()}.` });
+  };
+
+  const openGuide = (step = 0) => {
+    setGuideStep(Math.max(0, Math.min(step, LEADER_GUIDE_STEPS.length - 1)));
+    setShowGuide(true);
+  };
+
+  const closeGuide = () => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("leader-portal-guide-seen", "true");
+    }
+    setShowGuide(false);
+  };
+
+  const advanceGuide = () => {
+    if (guideStep >= LEADER_GUIDE_STEPS.length - 1) {
+      closeGuide();
+      return;
+    }
+    setGuideStep((current) => current + 1);
+  };
+
+  const priorityWeight = { high: 0, medium: 1, low: 2 };
+  const filteredQueue = useMemo(() => {
+    const queue = dashboard?.caseloadQueue || [];
+    const normalizedSearch = searchQuery.trim().toLowerCase();
+
+    return queue
+      .filter((item) => {
+        if (normalizedSearch && !item.youthName.toLowerCase().includes(normalizedSearch)) return false;
+        if (queueFilter === "needs_attention") return item.priority !== "low";
+        if (queueFilter === "follow_up_due") return item.supportStatus === "follow_up_due";
+        if (queueFilter === "stalled") return item.stalledProgress;
+        if (queueFilter === "all_ok") return item.supportStatus === "on_track" || item.supportStatus === "resolved";
+        return true;
+      })
+      .sort((a, b) => {
+        switch (queueSort) {
+          case "name":
+            return a.youthName.localeCompare(b.youthName);
+          case "inactivity":
+            return b.missedCheckInSignal - a.missedCheckInSignal;
+          case "follow_up":
+            return (a.nextFollowUpDate ? new Date(a.nextFollowUpDate).getTime() : Number.MAX_SAFE_INTEGER)
+              - (b.nextFollowUpDate ? new Date(b.nextFollowUpDate).getTime() : Number.MAX_SAFE_INTEGER);
+          case "urgency":
+          default:
+            return priorityWeight[a.priority] - priorityWeight[b.priority];
+        }
+      });
+  }, [dashboard?.caseloadQueue, queueFilter, queueSort, searchQuery]);
+
+  const getStatusChipClass = (status: string) => {
+    if (status === "follow_up_due") return "bg-amber-500/15 text-amber-700 border-amber-500/30";
+    if (status === "needs_support") return "bg-red-500/10 text-red-700 border-red-500/20";
+    if (status === "resolved") return "bg-emerald-500/10 text-emerald-700 border-emerald-500/20";
+    return "bg-muted text-muted-foreground border-border";
+  };
+
+  const weeklyTrendChartData = useMemo(() => {
+    if (!dashboard?.groupSnapshot) return [];
+    const formatter = new Intl.DateTimeFormat("en-US", { weekday: "short" });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const start = new Date(today);
+    start.setDate(today.getDate() - 6);
+
+    return dashboard.groupSnapshot.trend.map((completedGoals, index) => {
+      const date = new Date(start);
+      date.setDate(start.getDate() + index);
+      return {
+        day: formatter.format(date),
+        completedGoals,
+        checkIns: dashboard.groupSnapshot?.checkinTrend[index] || 0,
+      };
+    });
+  }, [dashboard?.groupSnapshot]);
+
+  const caseloadStatusChartData = useMemo(() => {
+    if (!dashboard?.caseloadQueue) return [];
+    const counts = {
+      needs_support: 0,
+      follow_up_due: 0,
+      on_track: 0,
+      resolved: 0,
+    };
+
+    for (const item of dashboard.caseloadQueue) {
+      counts[item.supportStatus] += 1;
+    }
+
+    return [
+      { status: "Needs support", total: counts.needs_support },
+      { status: "Follow-up due", total: counts.follow_up_due },
+      { status: "On track", total: counts.on_track },
+      { status: "Resolved", total: counts.resolved },
+    ];
+  }, [dashboard?.caseloadQueue]);
+
   const isServiceHoursMode = credentialType === ("service_hours");
+  const currentGuideStep = LEADER_GUIDE_STEPS[guideStep];
 
   return (
     <div className="min-h-screen bg-background pb-16">
-      <header className="bg-primary border-b border-border py-3 px-4 flex items-center justify-between gap-3 sticky top-0 z-40">
+      <header className="app-shell-header py-3 px-4 flex items-center justify-between gap-3 sticky top-0 z-40">
         <div className="flex items-center gap-2 min-w-0">
           {view !== "dashboard" && view !== "create_troop" && (
-            <button onClick={() => setView("dashboard")} className="text-accent mr-1">
+            <button onClick={() => setView("dashboard")} className="text-foreground/78 hover:text-foreground mr-1 transition-colors">
               <ArrowLeft size={18} />
             </button>
           )}
-          <h1 className="font-serif text-lg sm:text-xl text-accent truncate">xaidus — Leader</h1>
+          <h1 className="font-serif text-lg sm:text-xl text-foreground truncate">xaidus — Leader</h1>
         </div>
-        <button onClick={() => navigate("/settings/leader")} className="text-xs text-muted-foreground hover:text-foreground shrink-0">Settings</button>
+        <div className="flex items-center gap-3 shrink-0">
+          <button onClick={() => openGuide()} className="text-xs text-muted-foreground hover:text-foreground">
+            Guide
+          </button>
+          <button onClick={() => navigate("/settings/leader")} className="text-xs text-muted-foreground hover:text-foreground">Settings</button>
+        </div>
       </header>
 
-      <div className="max-w-lg mx-auto px-4 pt-6 space-y-5">
+      <div className="mx-auto max-w-6xl px-4 pt-6 space-y-5">
 
         {loading && (
           <div className="flex justify-center py-12">
@@ -265,7 +570,7 @@ export const LeaderDashboardPage = () => {
 
         {/* ── Create troop ─────────────────────────────────────────────── */}
         {!loading && view === "create_troop" && (
-          <Card className="border-0 shadow-sm">
+          <Card className="mx-auto w-full max-w-xl border-0 shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg font-serif break-words">Set up your troop</CardTitle>
               <p className="text-xs text-muted-foreground mt-1">
@@ -298,7 +603,7 @@ export const LeaderDashboardPage = () => {
 
         {/* ── Add scout ────────────────────────────────────────────────── */}
         {!loading && view === "add_scout" && (
-          <Card className="border-0 shadow-sm">
+          <Card className="mx-auto w-full max-w-xl border-0 shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg font-serif">Add a scout</CardTitle>
             </CardHeader>
@@ -338,12 +643,12 @@ export const LeaderDashboardPage = () => {
 
         {/* ── Award credential / log service hours ─────────────────────── */}
         {!loading && view === "award_credential" && (
-          <div className="space-y-4">
-            <div>
-              <h2 className="font-serif text-lg text-foreground">Document achievement</h2>
-              <p className="text-xs text-muted-foreground mt-1">
-                Every entry is hashed and permanently recorded — Bronze, Silver, and Gold awards become independently verifiable credentials that transfer if a girl moves to a new troop.
-              </p>
+          <div className="mx-auto w-full max-w-2xl space-y-4">
+                <div>
+                  <h2 className="font-serif text-lg text-foreground">Recognize progress</h2>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Every entry is hashed and permanently recorded — Bronze, Silver, and Gold awards become independently verifiable credentials that transfer if a girl moves to a new troop.
+                  </p>
             </div>
 
             {/* Credential type selector */}
@@ -450,11 +755,310 @@ export const LeaderDashboardPage = () => {
                 <div className="flex gap-3">
                   <Button variant="outline" className="flex-1" type="button" onClick={() => setView("dashboard")}>Cancel</Button>
                   <Button type="submit" className="flex-1" disabled={awarding}>
-                    {awarding ? "Awarding…" : "Award & record"}
+                    {awarding ? "Saving recognition…" : "Give recognition"}
                   </Button>
                 </div>
               </form>
             )}
+          </div>
+        )}
+
+        {!loading && view === "support_profile" && (
+          <div className="space-y-4">
+            {supportProfileLoading ? (
+              <div className="flex justify-center py-12">
+                <div className="w-6 h-6 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+              </div>
+            ) : supportProfile ? (
+              <>
+                <div className="space-y-2">
+                  <p className="eyebrow">Youth support view</p>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <h2 className="text-2xl font-semibold text-foreground break-words">{supportProfile.scout.nickname}</h2>
+                      <p className="text-sm text-muted-foreground">
+                        {supportProfile.scout.cohortCode || "General group"} · Last check-in {supportProfile.summary.lastCheckInLabel}
+                      </p>
+                    </div>
+                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                      <Button variant="outline" className="w-full sm:w-auto" onClick={() => openScoutRecord(supportProfile.scout.id)}>
+                        Portable record
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" className="w-full sm:w-auto">
+                            <Download className="mr-2 h-4 w-4" />
+                            Export
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleExportReport("excel")}>Download Excel</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleExportReport("pdf")}>Download PDF</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleExportReport("word")}>Download Word</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      <Button className="w-full sm:w-auto" onClick={() => openAwardCredentialForScout(supportProfile.scout.id)}>
+                        Recognize progress
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+                  <div className="space-y-4">
+                    <Card className="border-0 shadow-sm">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-semibold text-foreground">Support snapshot</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex flex-wrap gap-2">
+                          <span className={`rounded-full border px-2.5 py-1 text-[11px] ${getStatusChipClass(supportProfile.summary.supportStatus)}`}>
+                            {supportProfile.summary.supportStatus.replace(/_/g, " ")}
+                          </span>
+                          <span className="rounded-full border border-border bg-muted/30 px-2.5 py-1 text-[11px] text-muted-foreground">
+                            {supportProfile.summary.daysCheckedInThisWeek} check-ins this week
+                          </span>
+                          <span className="rounded-full border border-border bg-muted/30 px-2.5 py-1 text-[11px] text-muted-foreground">
+                            {supportProfile.summary.activeGoalCount} active goals
+                          </span>
+                          <span className="rounded-full border border-border bg-muted/30 px-2.5 py-1 text-[11px] text-muted-foreground">
+                            {supportProfile.summary.completedThisWeek} completed this week
+                          </span>
+                        </div>
+                        {supportProfile.supportFlags.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium text-foreground">Support signals</p>
+                            <div className="flex flex-wrap gap-2">
+                              {supportProfile.supportFlags.map((flag) => (
+                                <span key={flag} className="rounded-full border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-[11px] text-red-700">
+                                  {flag}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-0 shadow-sm">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-semibold text-foreground">Active goals and momentum</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {supportProfile.activeGoals.length > 0 ? (
+                          supportProfile.activeGoals.map((goal) => (
+                            <div key={goal.id} className="rounded-xl border border-border bg-background/70 px-3 py-3 space-y-2">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-foreground break-words">{goal.title}</p>
+                                  <p className="text-xs text-muted-foreground break-words">
+                                    {goal.category || "General goal"}{goal.badgeFocus ? ` · ${goal.badgeFocus}` : ""}
+                                  </p>
+                                </div>
+                                <span className="shrink-0 text-sm font-semibold text-foreground">{goal.progress}%</span>
+                              </div>
+                              {goal.microStep && (
+                                <p className="text-xs text-muted-foreground break-words">Next step: <span className="text-foreground">{goal.microStep}</span></p>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No active goals are set right now.</p>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-0 shadow-sm">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-semibold text-foreground">Recent activity timeline</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {supportProfile.timeline.length > 0 ? (
+                          supportProfile.timeline.map((item) => (
+                            <div key={item.id} className="rounded-xl border border-border bg-background/70 px-3 py-3">
+                              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-foreground break-words">{item.label}</p>
+                                  <p className="mt-1 text-xs text-muted-foreground break-words">{item.detail}</p>
+                                </div>
+                                <span className="shrink-0 text-[11px] text-muted-foreground">
+                                  {new Date(item.createdAt).toLocaleDateString()}
+                                </span>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No recent support activity yet.</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="space-y-4">
+                    <Card className="border-0 shadow-sm">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-semibold text-foreground">Recognition and rewards</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="grid gap-2 sm:grid-cols-3">
+                          <div className="rounded-xl border border-border bg-background/70 px-3 py-3">
+                            <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Recognitions</p>
+                            <p className="mt-2 text-lg font-semibold text-foreground">{supportProfile.recognition.totalCredentials}</p>
+                          </div>
+                          <div className="rounded-xl border border-border bg-background/70 px-3 py-3">
+                            <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">This week</p>
+                            <p className="mt-2 text-lg font-semibold text-foreground">{supportProfile.recognition.recognitionsThisWeek}</p>
+                          </div>
+                          <div className="rounded-xl border border-border bg-background/70 px-3 py-3">
+                            <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Service hours</p>
+                            <p className="mt-2 text-lg font-semibold text-foreground">{supportProfile.recognition.serviceHoursLogged}</p>
+                          </div>
+                        </div>
+                        {supportProfile.recognition.recentCredentials.length > 0 && (
+                          <div className="space-y-2">
+                            {supportProfile.recognition.recentCredentials.map((credential) => (
+                              <div key={credential.id} className="rounded-xl border border-border bg-background/70 px-3 py-3">
+                                <p className="text-sm font-medium text-foreground break-words">{credential.title}</p>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                  {credentialLabel[credential.credentialType] || credential.credentialType} · {new Date(credential.earnedAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <Button className="w-full" onClick={() => openAwardCredentialForScout(supportProfile.scout.id)}>
+                          Give recognition
+                        </Button>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-0 shadow-sm">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-semibold text-foreground">Quick support actions</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <Button variant="outline" onClick={() => { setSupportStatus("needs_support"); toggleSupportTag("accountability_support"); }}>
+                            Mark needs check-in
+                          </Button>
+                          <Button variant="outline" onClick={() => { setSupportStatus("resolved"); toggleSupportTag("resolved"); }}>
+                            Mark concern resolved
+                          </Button>
+                          <Button variant="outline" onClick={() => toggleSupportTag("outreach_attempted")}>
+                            Log outreach attempt
+                          </Button>
+                          <Button variant="outline" onClick={() => toggleSupportTag("needs_escalation")}>
+                            Request added support
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-0 shadow-sm">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-semibold text-foreground">Support note</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <Textarea
+                          value={supportNote}
+                          onChange={(e) => setSupportNote(e.target.value)}
+                          placeholder="Add a short support note"
+                          className="min-h-[120px]"
+                        />
+
+                        <div className="flex flex-wrap gap-2">
+                          {SUPPORT_TAG_OPTIONS.map((tag) => (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() => toggleSupportTag(tag)}
+                              className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                                supportTags.includes(tag)
+                                  ? "border-accent bg-accent/10 text-foreground"
+                                  : "border-border bg-background text-muted-foreground hover:text-foreground"
+                              }`}
+                            >
+                              {supportTagLabel[tag]}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="support-next-step">Next step</Label>
+                          <Input
+                            id="support-next-step"
+                            value={supportNextStep}
+                            onChange={(e) => setSupportNextStep(e.target.value)}
+                            placeholder="What should happen next?"
+                          />
+                        </div>
+
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor="support-follow-up">Follow-up date</Label>
+                            <Input
+                              id="support-follow-up"
+                              type="date"
+                              value={supportFollowUpDate}
+                              onChange={(e) => setSupportFollowUpDate(e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="support-status">Status</Label>
+                            <select
+                              id="support-status"
+                              value={supportStatus}
+                              onChange={(e) => setSupportStatus(e.target.value as CreateLeaderSupportNoteInput["status"])}
+                              className="min-h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                            >
+                              <option value="needs_support">Needs support</option>
+                              <option value="follow_up_due">Follow-up due</option>
+                              <option value="on_track">On track</option>
+                              <option value="resolved">Resolved</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <Button className="w-full" onClick={saveSupportNote} disabled={savingSupportNote}>
+                          {savingSupportNote ? "Saving..." : "Save support note"}
+                        </Button>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-0 shadow-sm">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-semibold text-foreground">Existing notes</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {supportProfile.supportNotes.length > 0 ? (
+                          supportProfile.supportNotes.map((note) => (
+                            <div key={note.id} className="rounded-xl border border-border bg-background/70 px-3 py-3 space-y-2">
+                              <div className="flex items-start justify-between gap-3">
+                                <span className={`rounded-full border px-2 py-0.5 text-[10px] ${getStatusChipClass(note.status)}`}>
+                                  {note.status.replace(/_/g, " ")}
+                                </span>
+                                <span className="text-[11px] text-muted-foreground">
+                                  {new Date(note.createdAt).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <p className="text-sm text-foreground break-words">{note.note}</p>
+                              {note.nextStep && (
+                                <p className="text-xs text-muted-foreground break-words">Next step: <span className="text-foreground">{note.nextStep}</span></p>
+                              )}
+                              {note.followUpDate && (
+                                <p className="text-xs text-muted-foreground">Follow-up: {new Date(note.followUpDate).toLocaleDateString()}</p>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No support notes logged yet.</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </>
+            ) : null}
           </div>
         )}
 
@@ -524,112 +1128,460 @@ export const LeaderDashboardPage = () => {
         {/* ── Main dashboard ────────────────────────────────────────────── */}
         {!loading && view === "dashboard" && dashboard && (
           <>
-            {/* Troop header */}
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <h2 className="text-lg font-semibold text-foreground break-words">{dashboard.troop.name}</h2>
-                <p className="text-xs text-muted-foreground break-words">Code: <span className="font-mono">{dashboard.troop.troopCode}</span> · {dashboard.totalScouts} scouts</p>
+            <div className="space-y-3">
+              <div className="leader-geo-panel p-5">
+              <div className="flex flex-col items-start gap-3 xl:flex-row xl:items-end xl:justify-between">
+                <div className="min-w-0">
+                  <p className="eyebrow">Caseload support workspace</p>
+                  <h2 className="text-2xl font-semibold text-foreground break-words mt-2">Who needs support right now?</h2>
+                  <p className="text-sm text-muted-foreground mt-2 max-w-2xl">
+                    Use this space to notice stalled momentum, log follow-up, and keep youth moving without turning the work into surveillance.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => openGuide()}
+                    className="mt-3 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    <BookOpen className="h-4 w-4" />
+                    Walk through the portal
+                  </button>
+                </div>
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                  <Button variant="outline" className="w-full sm:w-auto" onClick={() => openAwardCredentialForScout()}>
+                    Give recognition
+                  </Button>
+                  <Button className="w-full sm:w-auto" onClick={() => setView("add_scout")}>
+                    + Add youth
+                  </Button>
+                </div>
               </div>
-              <Button size="sm" className="shrink-0 whitespace-normal" onClick={() => setView("add_scout")}>+ Scout</Button>
+              </div>
+
+              <div className="grid gap-3 xl:grid-cols-[1.2fr_0.8fr_0.8fr]">
+                <div className="leader-geo-panel p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Search className="w-4 h-4" />
+                      <span>Search and filter caseload</span>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                          <Download className="mr-2 h-4 w-4" />
+                          Export report
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleExportReport("excel")}>Download Excel</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExportReport("pdf")}>Download PDF</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleExportReport("word")}>Download Word</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_auto_auto]">
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search youth name"
+                    />
+                    <select
+                      value={queueFilter}
+                      onChange={(e) => setQueueFilter(e.target.value as QueueFilter)}
+                      className="min-h-11 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="needs_attention">Needs attention</option>
+                      <option value="follow_up_due">Follow-up due</option>
+                      <option value="stalled">Progress stalled</option>
+                      <option value="all_ok">All okay</option>
+                      <option value="all">All youth</option>
+                    </select>
+                    <select
+                      value={queueSort}
+                      onChange={(e) => setQueueSort(e.target.value as QueueSort)}
+                      className="min-h-11 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                      <option value="urgency">Sort by urgency</option>
+                      <option value="inactivity">Sort by inactivity</option>
+                      <option value="follow_up">Sort by follow-up date</option>
+                      <option value="name">Sort by name</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="leader-geo-panel p-4">
+                  <p className="eyebrow">Caseload summary</p>
+                  <div className="mt-3 space-y-2 text-sm">
+                    <p className="text-foreground">{dashboard.caseloadSummary?.needsAttentionNow || 0} youth need attention today</p>
+                    <p className="text-foreground">{dashboard.caseloadSummary?.followUpsOverdue || 0} follow-ups are overdue</p>
+                    <p className="text-foreground">{dashboard.caseloadSummary?.onTrackThisWeek || 0} are on track this week</p>
+                    <p className="text-foreground">{dashboard.caseloadSummary?.stalledProgress || 0} may need a reset in progress</p>
+                  </div>
+                </div>
+
+                <div className="leader-geo-panel p-4">
+                  <div className="flex items-center gap-2">
+                    <Gift className="h-4 w-4 text-accent" />
+                    <p className="eyebrow">Recognition snapshot</p>
+                  </div>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <div className="leader-geo-subcard rounded-xl border border-border px-3 py-3">
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Issued this week</p>
+                      <p className="mt-2 text-lg font-semibold text-foreground">{dashboard.recognitionSnapshot?.rewardsIssuedThisWeek || 0}</p>
+                    </div>
+                    <div className="leader-geo-subcard rounded-xl border border-border px-3 py-3">
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Youth recognized</p>
+                      <p className="mt-2 text-lg font-semibold text-foreground">{dashboard.recognitionSnapshot?.youthRecognizedThisWeek || 0}</p>
+                    </div>
+                    <div className="leader-geo-subcard rounded-xl border border-border px-3 py-3">
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Service hours</p>
+                      <p className="mt-2 text-lg font-semibold text-foreground">{dashboard.recognitionSnapshot?.serviceHoursLoggedThisWeek || 0}</p>
+                    </div>
+                    <div className="leader-geo-subcard rounded-xl border border-border px-3 py-3">
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Marks earned</p>
+                      <p className="mt-2 text-lg font-semibold text-foreground">{dashboard.recognitionSnapshot?.marksEarnedThisWeek || 0}</p>
+                    </div>
+                  </div>
+                  {(dashboard.recognitionSnapshot?.recentRecognitions.length || 0) > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {dashboard.recognitionSnapshot!.recentRecognitions.slice(0, 2).map((item) => (
+                        <div key={item.id} className="leader-geo-subcard rounded-xl border border-border px-3 py-3">
+                          <p className="text-sm font-medium text-foreground break-words">{item.youthName}</p>
+                          <p className="mt-1 text-xs text-muted-foreground break-words">
+                            {item.title} · {new Date(item.earnedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
-            {/* Weekly reset */}
-            <Card className="border-0 shadow-sm border-accent/20 bg-accent/5">
-              <CardContent className="pt-4 space-y-3">
-                <div className="flex justify-between gap-3 text-sm">
-                  <span className="font-semibold text-foreground">Weekly reset</span>
-                  <span className="font-semibold shrink-0">{Math.round(dashboard.weeklyResetRate * 100)}%</span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Close the week clearly so scouts come back to one fresh goal and one next step.
-                </p>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${dashboard.weeklyResetRate >= 0.7 ? "bg-green-500" : "bg-accent"}`}
-                    style={{ width: `${Math.round(dashboard.weeklyResetRate * 100)}%` }}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {dashboard.weeklyResetRate >= 0.7
-                    ? "Most of the troop is current this week."
-                    : `${Math.round((0.7 - dashboard.weeklyResetRate) * dashboard.totalScouts)} more resets needed to keep the whole troop current.`}
-                </p>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleWeeklyReset}
-                  disabled={resetLoading}
-                >
-                  {resetLoading ? "Resetting…" : "Run weekly reset"}
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Participation and nudges */}
-            <Card className="border-0 shadow-sm">
+            <Card className="leader-geo-panel border-0 shadow-none">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold text-foreground">Participation and nudges</CardTitle>
+                <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-accent" />
+                  Needs attention now
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Start here. This queue is prioritized for follow-up, missed check-ins, and stalled momentum.
+                </p>
               </CardHeader>
-              <CardContent className="space-y-1">
-                <TroopSegments segments={dashboard.segments} onNudgeSent={fetchDashboard} />
-                {/* Scout record links */}
-                {allScouts.length > 0 && (
-                  <div className="pt-3 border-t border-border mt-3 space-y-1">
-                    {allScouts.map((s) => (
-                      <button
-                        key={s.id}
-                        onClick={() => openScoutRecord(s.id)}
-                        className="w-full flex items-center justify-between gap-3 py-1.5 px-1 text-left hover:bg-muted/40 rounded"
-                      >
-                        <span className="text-sm text-foreground break-words min-w-0">{s.nickname}</span>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          {s.credentialCount !== undefined && s.credentialCount > 0 && (
-                            <span>{s.credentialCount} credentials</span>
-                          )}
-                          <ChevronRight size={14} />
-                        </div>
-                      </button>
-                    ))}
+              <CardContent className="space-y-3">
+                {filteredQueue.length === 0 ? (
+                  <div className="rounded-xl border border-border bg-muted/20 p-4 text-sm text-muted-foreground">
+                    No youth match this filter right now.
                   </div>
+                ) : (
+                  filteredQueue.map((item) => (
+                    <div key={item.id} className="leader-geo-subcard rounded-xl border border-border p-4 space-y-3">
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-base font-semibold text-foreground break-words">{item.youthName}</p>
+                            <span className={`rounded-full border px-2.5 py-1 text-[11px] ${getStatusChipClass(item.supportStatus)}`}>
+                              {item.supportStatus === "follow_up_due"
+                                ? "Follow-up due"
+                                : item.supportStatus === "needs_support"
+                                ? "Needs support"
+                                : item.supportStatus === "resolved"
+                                ? "Resolved"
+                                : "On track"}
+                            </span>
+                            <span className={`rounded-full border px-2.5 py-1 text-[11px] ${item.priority === "high" ? "border-red-500/20 bg-red-500/10 text-red-700" : item.priority === "medium" ? "border-amber-500/30 bg-amber-500/10 text-amber-700" : "border-border bg-muted text-muted-foreground"}`}>
+                              {item.priority} priority
+                            </span>
+                          </div>
+                          <p className="mt-2 text-sm text-foreground">{item.reason}</p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <span className="rounded-full border border-border bg-muted/30 px-2.5 py-1 text-[11px] text-muted-foreground">
+                              Last check-in: {item.lastCheckInLabel}
+                            </span>
+                            <span className="rounded-full border border-border bg-muted/30 px-2.5 py-1 text-[11px] text-muted-foreground">
+                              {item.currentGoalStatus}
+                            </span>
+                            {item.nextFollowUpDate && (
+                              <span className="rounded-full border border-border bg-muted/30 px-2.5 py-1 text-[11px] text-muted-foreground">
+                                Follow-up: {new Date(item.nextFollowUpDate).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                          <Button variant="outline" className="w-full sm:w-auto" onClick={() => openSupportProfile(item.id)}>
+                            Open support view
+                          </Button>
+                          <Button variant="ghost" className="w-full sm:w-auto" onClick={() => openScoutRecord(item.id)}>
+                            Portable record
+                          </Button>
+                        </div>
+                      </div>
+                      {item.latestNoteSnippet && (
+                        <p className="text-xs text-muted-foreground break-words">
+                          Latest support note: <span className="text-foreground">{item.latestNoteSnippet}</span>
+                        </p>
+                      )}
+                    </div>
+                  ))
                 )}
               </CardContent>
             </Card>
 
-            {/* Document achievement */}
-            <Card className="border-0 shadow-sm">
-              <CardContent className="pt-4 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Award className="w-4 h-4 text-accent" />
-                  <h3 className="text-sm font-semibold text-foreground">Document achievement</h3>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Award Bronze, Silver, or Gold achievements and log service hours. Each entry is permanently hashed — no paperwork needed to prove it later.
-                </p>
-                <Button variant="outline" className="w-full" onClick={() => setView("award_credential")}>
-                  Award credential or log service hours
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="grid gap-4 xl:grid-cols-3">
+              <Card className="leader-geo-panel border-0 shadow-none">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <CalendarClock className="w-4 h-4 text-accent" />
+                    Follow-ups due
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {(dashboard.followUpsDue || []).length > 0 ? (
+                    dashboard.followUpsDue!.map((item) => (
+                      <button
+                        key={`${item.youthId}-${item.dueDate}`}
+                        onClick={() => openSupportProfile(item.youthId)}
+                        className="leader-geo-subcard w-full rounded-xl border border-border px-3 py-3 text-left hover:bg-muted/30"
+                      >
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground break-words">{item.youthName}</p>
+                            <p className="mt-1 text-xs text-muted-foreground break-words">{item.nextStep}</p>
+                          </div>
+                          <span className="shrink-0 text-xs text-muted-foreground">
+                            {item.dueDate ? new Date(item.dueDate).toLocaleDateString() : "No date"}
+                          </span>
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No follow-ups are due right now.</p>
+                  )}
+                </CardContent>
+              </Card>
 
+              <Card className="leader-geo-panel border-0 shadow-none">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <Award className="w-4 h-4 text-accent" />
+                    Nudges and participation
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Reach out quickly without leaving the workspace.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <TroopSegments segments={dashboard.segments} onNudgeSent={fetchDashboard} />
+                </CardContent>
+              </Card>
 
-            {/* Verifiable record note */}
-            <Card className="border-0 shadow-sm bg-muted/30">
-              <CardContent className="pt-4 pb-4">
-                <div className="flex items-start gap-2">
-                  <Shield className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-foreground">Portable leadership records</p>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      Every badge, award, and service hour logged here is independently verifiable and travels with each girl — even if she moves to another troop. It reduces your admin burden and gives scouts a credential that stands on its own.
+              <Card className="leader-geo-panel border-0 shadow-none">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <ClipboardList className="w-4 h-4 text-accent" />
+                    Recent support activity
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {(dashboard.recentSupportActivity || []).length > 0 ? (
+                    dashboard.recentSupportActivity!.map((item) => (
+                      <div key={item.id} className="leader-geo-subcard rounded-xl border border-border px-3 py-3 space-y-1">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <p className="text-sm font-medium text-foreground break-words">{item.youthName}</p>
+                          <span className={`rounded-full border px-2 py-0.5 text-[10px] ${getStatusChipClass(item.status)}`}>
+                            {item.status.replace(/_/g, " ")}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground break-words">{item.note}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {new Date(item.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Support notes will show up here once follow-up is logged.</p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {dashboard.groupSnapshot && (
+              <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+                <Card className="leader-geo-panel border-0 shadow-none">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-accent" />
+                      Weekly activity trends
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      A quick read on completions and check-ins across the week.
                     </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                  </CardHeader>
+                  <CardContent>
+                    <ChartContainer
+                      config={{
+                        completedGoals: { label: "Completed goals", color: "hsl(var(--foreground))" },
+                        checkIns: { label: "Check-ins", color: "hsl(var(--muted-foreground))" },
+                      }}
+                      className="aspect-[16/7] w-full"
+                    >
+                      <LineChart data={weeklyTrendChartData}>
+                        <CartesianGrid vertical={false} />
+                        <XAxis dataKey="day" tickLine={false} axisLine={false} />
+                        <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={28} />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Line type="monotone" dataKey="completedGoals" stroke="var(--color-completedGoals)" strokeWidth={2.5} dot={false} />
+                        <Line type="monotone" dataKey="checkIns" stroke="var(--color-checkIns)" strokeWidth={2} dot={false} />
+                      </LineChart>
+                    </ChartContainer>
+                  </CardContent>
+                </Card>
 
-            {/* Privacy note */}
+                <Card className="leader-geo-panel border-0 shadow-none">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      <HeartHandshake className="w-4 h-4 text-accent" />
+                      Support status mix
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      See where the caseload is concentrated without opening every record.
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <ChartContainer
+                      config={{ total: { label: "Youth", color: "hsl(var(--foreground))" } }}
+                      className="aspect-[16/9] w-full"
+                    >
+                      <BarChart data={caseloadStatusChartData}>
+                        <CartesianGrid vertical={false} />
+                        <XAxis dataKey="status" tickLine={false} axisLine={false} interval={0} angle={-12} textAnchor="end" height={52} />
+                        <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={28} />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Bar dataKey="total" fill="var(--color-total)" radius={[8, 8, 0, 0]} />
+                      </BarChart>
+                    </ChartContainer>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {dashboard.groupSnapshot && (
+              <Card className="leader-geo-panel border-accent/20 bg-accent/5 shadow-none">
+                <CardContent className="pt-4 space-y-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <TrendingUp className="w-4 h-4 text-accent shrink-0" />
+                        <span>Caseload trend</span>
+                      </div>
+                      <h3 className="text-base font-semibold text-foreground break-words">
+                        {dashboard.groupSnapshot.trendLabel}
+                      </h3>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {dashboard.groupSnapshot.supportSignal}
+                      </p>
+                    </div>
+                    <span className="leader-geo-subcard shrink-0 self-start rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-foreground">
+                      {dashboard.groupSnapshot.activeScouts}/{dashboard.totalScouts} active
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <div className="leader-geo-subcard min-w-0 rounded-xl border border-border px-3 py-3">
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground leading-tight break-words">Goals set</p>
+                      <p className="mt-2 text-lg font-semibold text-foreground break-words">{dashboard.groupSnapshot.goalsCreatedThisWeek}</p>
+                    </div>
+                    <div className="leader-geo-subcard min-w-0 rounded-xl border border-border px-3 py-3">
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground leading-tight break-words">Completed</p>
+                      <p className="mt-2 text-lg font-semibold text-foreground break-words">{dashboard.groupSnapshot.goalsCompletedThisWeek}</p>
+                    </div>
+                    <div className="leader-geo-subcard min-w-0 rounded-xl border border-border px-3 py-3">
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground leading-tight break-words">Check-ins</p>
+                      <p className="mt-2 text-lg font-semibold text-foreground break-words">{dashboard.groupSnapshot.checkinsThisWeek}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {dashboard.themeSummary && (
+              <Card className="leader-geo-panel border-0 shadow-none">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-accent" />
+                    Group themes
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Trend summaries only. Use these to guide support conversations, not to inspect private youth content.
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    {(dashboard.themeSummary.topThemes || []).length > 0 ? (
+                      dashboard.themeSummary.topThemes.map((theme) => (
+                        <span key={`${theme.source}-${theme.label}`} className="rounded-full border border-border bg-muted/40 px-3 py-1 text-xs text-foreground">
+                          {theme.label} · {theme.count}
+                        </span>
+                      ))
+                    ) : (
+                      <p className="text-xs text-muted-foreground">Themes will appear once youth start setting goals and checking in.</p>
+                    )}
+                  </div>
+
+                  {(dashboard.themeSummary.cohorts || []).length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Users className="w-4 h-4" />
+                        <span>Cohort view</span>
+                      </div>
+                      {dashboard.themeSummary.cohorts.map((cohort) => (
+                        <div key={cohort.cohortCode} className="rounded-xl border border-border bg-muted/20 px-3 py-3 space-y-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground break-words">{cohort.cohortCode}</p>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              <span className="rounded-full border border-border bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground">{cohort.memberCount} youth</span>
+                              <span className="rounded-full border border-border bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground">{cohort.activeScouts} active</span>
+                              <span className="rounded-full border border-border bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground">{cohort.goalsCompletedThisWeek} completed</span>
+                            </div>
+                          </div>
+                          {cohort.themes.length > 0 && (
+                            <p className="text-xs text-muted-foreground break-words">
+                              Showing up here: <span className="text-foreground">{cohort.themes.join(", ")}</span>
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Card className="border-0 shadow-sm border-accent/20 bg-accent/5">
+                <CardContent className="pt-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3 text-sm">
+                    <span className="font-semibold text-foreground">Weekly reset</span>
+                    <span className="font-semibold shrink-0">{Math.round(dashboard.weeklyResetRate * 100)}%</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Close the week clearly so youth come back to one fresh goal and one next step.
+                  </p>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${dashboard.weeklyResetRate >= 0.7 ? "bg-green-500" : "bg-accent"}`}
+                      style={{ width: `${Math.round(dashboard.weeklyResetRate * 100)}%` }}
+                    />
+                  </div>
+                  <Button variant="outline" className="w-full" onClick={handleWeeklyReset} disabled={resetLoading}>
+                    {resetLoading ? "Resetting…" : "Run weekly reset"}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
             <p className="text-xs text-muted-foreground text-center">
-              You see effort and credentials only — not what scouts write in their reflections.
+              You see effort trends, recognitions, goals, follow-up, and documented support work only — not private reflections or transcript-like content.
             </p>
           </>
         )}
@@ -643,6 +1595,107 @@ export const LeaderDashboardPage = () => {
         )}
 
       </div>
+
+      <Dialog open={showGuide} onOpenChange={(open) => (!open ? closeGuide() : setShowGuide(true))}>
+        <DialogContent className="flex h-[calc(100dvh-1.5rem)] w-[calc(100vw-1.5rem)] max-w-3xl flex-col overflow-hidden p-0 sm:h-[calc(100dvh-2rem)] sm:w-full">
+          <DialogHeader className="border-b border-border/70 px-6 pb-4 pt-6">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-muted-foreground">
+              <BookOpen className="h-4 w-4" />
+              <span>Leader portal guide</span>
+            </div>
+            <DialogTitle className="text-2xl leading-tight tracking-[-0.03em] text-foreground">How this workspace works</DialogTitle>
+            <DialogDescription className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+              A quick walkthrough of what this portal shows, what it does not show, and how to use it well in youth support work.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="border-b border-border/70 bg-card px-5 py-4">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Step {guideStep + 1} of {LEADER_GUIDE_STEPS.length}</span>
+                <span>{Math.round(((guideStep + 1) / LEADER_GUIDE_STEPS.length) * 100)}%</span>
+              </div>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-foreground transition-all"
+                  style={{ width: `${((guideStep + 1) / LEADER_GUIDE_STEPS.length) * 100}%` }}
+                />
+              </div>
+              <p className="mt-3 text-sm leading-6 text-foreground/82">
+                Click any step to jump around. The guide stays focused on one idea at a time.
+              </p>
+            </div>
+
+            <ScrollArea className="min-h-0 flex-1">
+              <div className="space-y-5 px-6 py-5">
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {LEADER_GUIDE_STEPS.map((step, index) => (
+                    <button
+                      key={step.title}
+                      type="button"
+                      onClick={() => setGuideStep(index)}
+                      className={`shrink-0 rounded-full border px-3 py-2 text-sm leading-none transition-colors ${
+                        index === guideStep
+                          ? "border-foreground bg-foreground text-background shadow-sm"
+                          : "border-border bg-background text-foreground hover:bg-muted"
+                      }`}
+                    >
+                      Step {index + 1}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="mx-auto max-w-2xl space-y-5">
+                  <div className="rounded-2xl border border-border/70 bg-background p-5 shadow-sm">
+                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Current step</p>
+                    <h3 className="mt-3 text-2xl font-semibold leading-tight tracking-[-0.03em] text-foreground">
+                      {currentGuideStep.title}
+                    </h3>
+                    <p className="mt-3 text-base leading-7 text-muted-foreground">
+                      {currentGuideStep.body}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
+                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">What to keep in mind</p>
+                    <div className="mt-3 space-y-3">
+                      {currentGuideStep.takeaways.map((takeaway) => (
+                        <div key={takeaway} className="flex items-start gap-3">
+                          <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-foreground/80" />
+                          <p className="text-sm leading-6 text-foreground/92">{takeaway}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-border/70 bg-background p-5 shadow-sm">
+                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Use it like this</p>
+                    <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                      Move through the guide once to understand the structure, then reopen it later if you need a refresher on queues, notes, recognition, exports, or role boundaries.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </ScrollArea>
+          </div>
+
+          <DialogFooter className="border-t border-border/70 px-6 py-4 sm:justify-between">
+            <Button variant="outline" onClick={closeGuide}>Close guide</Button>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                variant="outline"
+                onClick={() => setGuideStep((current) => Math.max(0, current - 1))}
+                disabled={guideStep === 0}
+              >
+                Previous
+              </Button>
+              <Button onClick={advanceGuide}>
+                {guideStep === LEADER_GUIDE_STEPS.length - 1 ? "Finish guide" : "Next step"}
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

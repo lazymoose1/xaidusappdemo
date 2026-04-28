@@ -10,8 +10,6 @@ interface TeenHomeViewProps {
   attributes: string[];
   todayGoals?: ApiTodayGoal[];
   primaryAction: TeenHomePrimaryAction;
-  primaryActionLabel: string;
-  onPrimaryAction: () => void | Promise<void>;
   onTinyClick: () => void;
   onAddGoalClick: () => void;
   onNewPost: () => void;
@@ -22,8 +20,6 @@ const TeenHomeView = ({
   attributes,
   todayGoals,
   primaryAction,
-  primaryActionLabel,
-  onPrimaryAction,
   onTinyClick,
   onAddGoalClick,
   onNewPost,
@@ -95,10 +91,7 @@ const TeenHomeView = ({
 
         <CrystalBall
           progress={progress}
-          todayGoals={todayGoals}
           primaryAction={primaryAction}
-          primaryActionLabel={primaryActionLabel}
-          onPrimaryAction={onPrimaryAction}
           onTinyClick={onTinyClick}
           onAddGoalClick={onAddGoalClick}
         />

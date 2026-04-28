@@ -4,6 +4,7 @@ import { ArrowLeft, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import ThemeModeRow from "@/components/ThemeModeRow";
 import { useAuth } from "@/providers/AuthProvider";
 import { authApi } from "@/api/endpoints";
 import { useToast } from "@/hooks/use-toast";
@@ -195,6 +196,10 @@ const ParentSettingsPage = () => {
               {roleError && !codeSent && <p className="text-xs text-destructive">{roleError}</p>}
             </div>
           )}
+        </div>
+
+        <div className="space-y-4 pb-6 border-b border-border">
+          <ThemeModeRow />
         </div>
 
         {/* Sign out */}

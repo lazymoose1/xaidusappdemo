@@ -4,6 +4,7 @@ import { ArrowLeft, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import ThemeModeRow from "@/components/ThemeModeRow";
 import { useAuth } from "@/providers/AuthProvider";
 import { authApi } from "@/api/endpoints";
 import { useToast } from "@/hooks/use-toast";
@@ -86,16 +87,16 @@ const LeaderSettingsPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="bg-primary border-b border-border h-[15vh] fixed top-0 left-0 right-0 z-40 flex items-center px-4">
+      <header className="app-shell-header h-[15vh] fixed top-0 left-0 right-0 z-40 flex items-center px-4">
         <Button
           variant="ghost"
           size="icon"
           onClick={() => navigate("/leader")}
-          className="text-accent hover:bg-accent/20"
+          className="text-foreground hover:bg-white/[0.06]"
         >
           <ArrowLeft className="w-6 h-6" />
         </Button>
-        <h1 className="font-serif text-2xl text-accent mx-auto">settings</h1>
+        <h1 className="font-serif text-2xl text-foreground mx-auto">settings</h1>
       </header>
 
       <main className="pt-[calc(15vh+2rem)] pb-24 px-4 max-w-lg mx-auto space-y-8">
@@ -140,6 +141,7 @@ const LeaderSettingsPage = () => {
                 key={r}
                 variant={pendingRole === r ? "default" : "outline"}
                 size="sm"
+                className="min-h-11"
                 onClick={() => { setPendingRole(r); setRoleCode(""); setRoleError(null); setCodeSent(false); }}
                 disabled={r === user?.role}
               >
@@ -195,6 +197,10 @@ const LeaderSettingsPage = () => {
               {roleError && !codeSent && <p className="text-xs text-destructive">{roleError}</p>}
             </div>
           )}
+        </div>
+
+        <div className="space-y-4 pb-6 border-b border-border">
+          <ThemeModeRow />
         </div>
 
         {/* Sign out */}

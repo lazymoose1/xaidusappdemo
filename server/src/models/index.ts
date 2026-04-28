@@ -17,3 +17,4 @@ export { Reward } from './reward.model';
 export { RoleCode, type IRoleCode } from './role-code.model';
 export { ForumPost, type IForumPost, type ForumCategory } from './forum-post.model';
 export { ForumReply, type IForumReply } from './forum-reply.model';
+export { LeaderSupportNote, type ILeaderSupportNote, type SupportTag, type SupportStatus } from './leader-support-note.model';

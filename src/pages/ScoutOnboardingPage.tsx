@@ -109,8 +109,8 @@ const ScoutOnboardingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-lg border-0 shadow-lg">
+    <div className="min-h-screen bg-background flex items-start justify-center px-3 py-6 sm:px-5 sm:items-center sm:py-8">
+      <Card className="w-full max-w-2xl border-0 shadow-lg">
         <CardHeader>
           <CardTitle className="text-center text-2xl font-serif">
             {step === 1 && "What badge are you working on?"}

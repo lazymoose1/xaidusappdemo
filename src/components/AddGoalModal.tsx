@@ -5,6 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
@@ -115,12 +116,13 @@ const AddGoalModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-1.5rem)] max-w-md bg-background border-primary rounded-3xl max-h-[90vh] overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
-        <DialogHeader className="bg-primary -mx-4 -mt-4 px-4 py-5 mb-4 rounded-t-3xl sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-6">
-          <DialogTitle className="text-lg sm:text-xl font-serif text-accent text-center break-words">Set a goal</DialogTitle>
+      <DialogContent className="flex h-[calc(100dvh-1.5rem)] w-[calc(100vw-1.5rem)] max-w-md flex-col overflow-hidden rounded-3xl border-white/10 bg-background px-4 py-4 sm:h-[min(42rem,calc(100dvh-2rem))] sm:w-full sm:px-6 sm:py-6">
+        <DialogHeader className="gradient-card border-b border-white/10 -mx-4 -mt-4 px-4 py-5 mb-4 rounded-t-3xl sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-6">
+          <DialogTitle className="text-lg sm:text-xl font-serif text-foreground text-center break-words">Set a goal</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-5 pb-2">
+        <ScrollArea className="min-h-0 flex-1 pr-1">
+          <div className="space-y-5 pb-2">
           {/* Quick-start suggestions */}
           <div className="space-y-2">
             <p className="text-xs text-muted-foreground uppercase tracking-wide">Quick start</p>
@@ -223,7 +225,8 @@ const AddGoalModal = ({
           >
             {saving ? 'Saving…' : 'Set goal'}
           </Button>
-        </div>
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

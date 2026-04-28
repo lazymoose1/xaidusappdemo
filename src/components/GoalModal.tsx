@@ -130,22 +130,25 @@ const GoalModal = ({ open, onOpenChange, suggestedGoals = [], onCreateGoal }: Go
 
   return (
       <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="w-[calc(100vw-1.5rem)] max-w-lg bg-background border-primary rounded-3xl max-h-[90vh] overflow-hidden flex flex-col px-4 py-4 sm:px-6 sm:py-6">
-        <DialogHeader className="bg-primary -mx-4 -mt-4 px-4 py-5 mb-4 rounded-t-3xl flex-shrink-0 sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-6">
-          <DialogTitle className="text-lg sm:text-xl font-serif text-accent text-center break-words">
+      <DialogContent className="flex h-[calc(100dvh-1.5rem)] w-[calc(100vw-1.5rem)] max-w-lg flex-col overflow-hidden rounded-3xl border-white/10 bg-background px-4 py-4 sm:h-[min(44rem,calc(100dvh-2rem))] sm:w-full sm:px-6 sm:py-6">
+        <DialogHeader className="gradient-card border-b border-white/10 -mx-4 -mt-4 mb-4 rounded-t-3xl px-4 py-5 flex-shrink-0 sm:-mx-6 sm:-mt-6 sm:px-6 sm:py-6">
+          <DialogTitle className="text-lg sm:text-xl font-serif text-foreground text-center break-words">
             What's your goal today?
           </DialogTitle>
-          <DialogDescription className="text-accent/70 text-center text-xs sm:text-sm break-words">
-            Share your focus and get personalized guidance
+          <div className="space-y-2 text-center">
+            <DialogDescription className="text-xs text-muted-foreground break-words sm:text-sm">
+              Share your focus and get personalized guidance
+            </DialogDescription>
             {suggestedGoals.length > 0 && (
-              <div className="mt-2 text-xs text-accent/60">
-                💡 TINY AI suggests goals based on your progress and interests
-              </div>
+              <p className="text-xs text-muted-foreground">
+                💡 TINY suggests goals based on your progress and interests
+              </p>
             )}
-          </DialogDescription>
+          </div>
         </DialogHeader>
 
-        <div className="space-y-4 pt-2 flex-1 px-1 min-h-0 overflow-y-auto">
+        <ScrollArea className="min-h-0 flex-1 px-1">
+          <div className="space-y-4 pb-2 pt-2 overscroll-contain">
           {suggestedGoals.length > 0 && (
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">Suggested Goals</p>
@@ -228,7 +231,7 @@ const GoalModal = ({ open, onOpenChange, suggestedGoals = [], onCreateGoal }: Go
 
           {suggestion && (
             <div className="space-y-4 animate-fade-in flex-1 min-h-0 flex flex-col">
-              <div className="w-full flex-1 min-h-[200px] max-h-[70vh] overflow-y-auto pr-3">
+              <div className="w-full flex-1 min-h-[200px] max-h-[50dvh] overflow-y-auto pr-3 sm:max-h-[70vh]">
                 <div className="speech-bubble border-2 border-accent/20">
                   <p className="text-accent leading-relaxed font-medium break-words whitespace-pre-wrap">{suggestion}</p>
                 </div>
@@ -306,7 +309,8 @@ const GoalModal = ({ open, onOpenChange, suggestedGoals = [], onCreateGoal }: Go
               </div>
             </div>
           )}
-        </div>
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

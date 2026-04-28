@@ -1,9 +1,6 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/providers/AuthProvider";
 import { Loader2 } from "lucide-react";
-import { callAiWrapper } from "@/services/aiClient";
 import type { ApiTodayGoal } from "@/types/api";
 import type { TeenHomePrimaryAction } from "@/pages/index/resolveTeenHomePrimaryAction";
 
@@ -13,68 +10,23 @@ interface CrystalBallProps {
   onTinyClick: () => void;
   onAddGoalClick: () => void;
   primaryAction: TeenHomePrimaryAction;
-  primaryActionLabel: string;
-  onPrimaryAction: () => void | Promise<void>;
 }
 
 const CrystalBall = ({
   progress,
-  todayGoals = [],
   onTinyClick,
   onAddGoalClick,
   primaryAction,
-  primaryActionLabel,
-  onPrimaryAction,
 }: CrystalBallProps) => {
   const [isLoading, setIsLoading] = useState(false);
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
 
   const handleTinyClick = async () => {
     setIsLoading(true);
     try {
-      // Build payload from real app state.
-      // Use the first active (incomplete) goal as context; fall back to the first goal.
-      const primaryGoal =
-        todayGoals.find((g) => !g.completed) ?? todayGoals[0];
-
-      const goalDays = primaryGoal?.plannedDays
-        ? Object.entries(primaryGoal.plannedDays)
-            .filter(([, v]) => v)
-            .map(([k]) => k)
-        : undefined;
-
-      const advice = await callAiWrapper({
-        goal: primaryGoal?.title || 'Make steady progress this week',
-        goalType: primaryGoal?.category ?? undefined,
-        goalSize: (primaryGoal as any)?.sizePreset ?? (primaryGoal?.microStep ? 'small' : undefined),
-        goalDays,
-        checkInWindow: (primaryGoal as any)?.checkInWindows?.[0] ?? undefined,
-        archetype: typeof user?.archetype === 'string' ? user.archetype : undefined,
-        interests: Array.isArray(user?.interests) ? user.interests : [],
-        ageGroup: '14-18',
-        recentActivity: {
-          lastCheckInStatus: primaryGoal?.lastCheckin?.status ?? undefined,
-          lastGoalOutcome: primaryGoal?.completed ? 'completed' : undefined,
-        },
-      });
-
-      queryClient.setQueryData(['tinyAdvice'], advice);
-    } catch {
-      // callAiWrapper never throws — this is a safety net only.
-      queryClient.removeQueries({ queryKey: ['tinyAdvice'] });
+      onTinyClick();
     } finally {
       setIsLoading(false);
-      onTinyClick();
     }
-  };
-
-  const handlePrimaryAction = async () => {
-    if (primaryAction === "CREATE_TODAY_GOAL") {
-      await handleTinyClick();
-      return;
-    }
-    await onPrimaryAction();
   };
 
   return (
@@ -123,7 +75,7 @@ const CrystalBall = ({
           id="tiny-primary-cta"
           data-testid="tiny-primary-cta"
           data-primary-action={primaryAction}
-          onClick={handlePrimaryAction}
+          onClick={handleTinyClick}
           disabled={isLoading}
           variant="ghost"
           className="relative -mt-2 w-[232px] h-[76px] rounded-[999px] border border-white/12 bg-[linear-gradient(180deg,#f5f5f5_0%,#d7d7da_48%,#bababe_100%)] text-black hover:text-black hover:bg-[linear-gradient(180deg,#ffffff_0%,#ececef_48%,#d0d0d4_100%)] shadow-[inset_0_10px_18px_rgba(255,255,255,0.4),0_18px_32px_rgba(0,0,0,0.35),0_0_0_6px_rgba(255,255,255,0.04)] transition-all duration-300 hover:scale-[1.03] hover:shadow-[inset_0_10px_18px_rgba(255,255,255,0.42),0_22px_36px_rgba(0,0,0,0.42),0_0_0_8px_rgba(255,255,255,0.06)] disabled:opacity-60"

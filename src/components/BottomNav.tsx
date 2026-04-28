@@ -18,6 +18,15 @@ const BottomNav = () => {
   const [moreOpen, setMoreOpen] = useState(false);
 
   const navItems = useMemo(() => {
+    if (role === "scout_leader") {
+      return [
+        { type: "link" as const, path: "/leader", label: "workspace", icon: LayoutGrid },
+        { type: "link" as const, path: "/notifications", label: "alerts", icon: Bell },
+        { type: "link" as const, path: "/settings/leader", label: "settings", icon: Settings },
+        { type: "action" as const, label: "more", icon: Compass },
+      ];
+    }
+
     if (role === "parent") {
       return [
         { type: "link" as const, path: "/", label: "home", icon: Home },
@@ -50,12 +59,22 @@ const BottomNav = () => {
       ];
     }
 
+    if (role === "scout_leader") {
+      return [
+        { path: "/leader", label: "Caseload workspace", icon: LayoutGrid, description: "Your main support queue, follow-ups, and recognition tools." },
+        { path: "/settings/leader", label: "Leader settings", icon: Settings, description: "Account, role, theme, and sign out." },
+        ...base,
+      ];
+    }
+
     return base;
   }, [role]);
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 bg-black/92 border-t border-white/10 z-50 h-[15vh] min-h-[72px] flex items-center backdrop-blur-xl">
+      <nav className={`fixed bottom-0 left-0 right-0 border-t border-white/10 z-50 h-[15vh] min-h-[72px] flex items-center backdrop-blur-xl ${
+        role === "scout_leader" ? "leader-geo-nav bg-black/92" : "bg-black/92"
+      }`}>
         <div className="flex justify-around items-center h-full px-2 w-full">
           {navItems.map((item) => {
             const isActive = item.type === "link" && location.pathname === item.path;
@@ -85,11 +104,15 @@ const BottomNav = () => {
                 aria-label={item.label}
                 className="flex flex-col items-center justify-center flex-1 py-1 transition-all duration-300"
               >
-                <div className={`relative flex items-center justify-center w-8 h-8 rounded-full transition-all duration-300 ${
-                  isActive ? "bg-white text-black shadow-soft" : "bg-transparent"
+                <div className={`relative flex items-center justify-center w-8 h-8 transition-all duration-300 ${
+                  isActive
+                    ? role === "scout_leader"
+                      ? "rounded-xl bg-black text-white shadow-soft ring-1 ring-white/10 dark:bg-white dark:text-black"
+                      : "rounded-full bg-black text-white shadow-soft dark:bg-white dark:text-black"
+                    : "rounded-full bg-transparent"
                 }`}>
                   <item.icon className={`w-4 h-4 transition-colors duration-300 ${
-                    isActive ? "text-black" : "text-muted-foreground"
+                    isActive ? "text-white dark:text-black" : "text-muted-foreground"
                   }`} />
                 </div>
                 <span className={`text-[10px] mt-1 transition-colors duration-300 truncate max-w-full uppercase tracking-[0.16em] ${

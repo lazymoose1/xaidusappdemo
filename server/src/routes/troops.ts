@@ -31,12 +31,30 @@ const logServiceHoursSchema = z.object({
   description: z.string().max(500).optional(),
 });
 
+const supportNoteSchema = z.object({
+  note: z.string().min(1).max(500),
+  tags: z.array(z.enum([
+    'outreach_attempted',
+    'youth_responded',
+    'missed_appointment',
+    'goal_planning_help',
+    'accountability_support',
+    'needs_escalation',
+    'resolved',
+  ])).max(6).optional(),
+  nextStep: z.string().max(200).optional(),
+  followUpDate: z.string().datetime().optional(),
+  status: z.enum(['needs_support', 'follow_up_due', 'on_track', 'resolved']).optional(),
+});
+
 router.post('/', authMiddleware, requireRegistered, validate(createTroopSchema), troopController.createTroop);
 router.get('/mine/dashboard', authMiddleware, requireRegistered, troopController.getTroopDashboard);
 router.post('/mine/nudge', authMiddleware, requireRegistered, validate(sendNudgeSchema), troopController.sendNudge);
 router.post('/mine/weekly-reset', authMiddleware, requireRegistered, troopController.troopWeeklyReset);
 router.post('/mine/award-badge', authMiddleware, requireRegistered, validate(awardBadgeSchema), troopController.awardBadge);
 router.get('/mine/scouts/:scoutId/record', authMiddleware, requireRegistered, troopController.getScoutRecord);
+router.get('/mine/scouts/:scoutId/support-profile', authMiddleware, requireRegistered, troopController.getScoutSupportProfile);
+router.post('/mine/scouts/:scoutId/support-notes', authMiddleware, requireRegistered, validate(supportNoteSchema), troopController.addSupportNote);
 router.post('/mine/log-service-hours', authMiddleware, requireRegistered, validate(logServiceHoursSchema), troopController.logServiceHours);
 
 export default router;

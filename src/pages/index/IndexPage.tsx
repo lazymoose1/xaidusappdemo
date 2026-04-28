@@ -168,40 +168,6 @@ const IndexPage = () => {
     }
   };
 
-  const primaryActionLabel =
-    teenHomeResolution.primaryAction === "START_WEEKLY_RESET"
-      ? "Start this week"
-      : teenHomeResolution.primaryAction === "CREATE_TODAY_GOAL"
-      ? "Create today's goal"
-      : teenHomeResolution.primaryAction === "CHECK_IN"
-      ? "Check in today"
-      : teenHomeResolution.primaryAction === "DO_NEXT_STEP"
-      ? "See your next step"
-      : "Review this week";
-
-  const handlePrimaryAction = async () => {
-    triggerHaptic("medium");
-
-    switch (teenHomeResolution.primaryAction) {
-      case "START_WEEKLY_RESET":
-        await handleStartWeeklyReset();
-        break;
-      case "CREATE_TODAY_GOAL":
-        handleTinyClick();
-        break;
-      case "CHECK_IN":
-        scrollToCard("today-focus-card");
-        break;
-      case "DO_NEXT_STEP":
-        scrollToCard("tiny-next-step");
-        break;
-      case "NONE":
-      default:
-        scrollToCard("weekly-progress-card");
-        break;
-    }
-  };
-
   const handleButtonClick = (callback: () => void) => {
     triggerHaptic("medium");
     callback();
@@ -277,8 +243,6 @@ const IndexPage = () => {
                 attributes={attributes}
                 todayGoals={todayGoals}
                 primaryAction={teenHomeResolution.primaryAction}
-                primaryActionLabel={primaryActionLabel}
-                onPrimaryAction={handlePrimaryAction}
                 onTinyClick={handleTinyClick}
                 onAddGoalClick={handleAddGoalClick}
                 onNewPost={() => setNewPostOpen(true)}

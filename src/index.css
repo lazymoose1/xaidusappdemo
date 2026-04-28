@@ -6,45 +6,44 @@
 
 @layer base {
   :root {
-    --background: 0 0% 7%;
-    --foreground: 0 0% 96%;
+    --background: 0 0% 99%;
+    --foreground: 0 0% 9%;
 
-    --card: 0 0% 10%;
-    --card-foreground: 0 0% 96%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
 
-    --popover: 0 0% 10%;
-    --popover-foreground: 0 0% 96%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
 
-    --primary: 0 0% 97%;
-    --primary-foreground: 0 0% 10%;
+    --primary: 0 0% 10%;
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 0 0% 14%;
-    --secondary-foreground: 0 0% 96%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 14%;
 
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 68%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 42%;
 
-    --accent: 0 0% 90%;
-    --accent-foreground: 0 0% 10%;
+    --accent: 0 0% 12%;
+    --accent-foreground: 0 0% 98%;
 
     --destructive: 0 78% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 0 0% 84%;
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
+    --ring: 0 0% 12%;
 
     --radius: 1.35rem;
 
     --gradient-hero:
-      radial-gradient(circle at top, hsl(0 0% 100% / 0.07), transparent 42%),
-      linear-gradient(180deg, hsl(0 0% 10%) 0%, hsl(0 0% 7%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 12%) 0%, hsl(0 0% 10%) 100%);
-    --gradient-radial: radial-gradient(circle at center, hsl(0 0% 100% / 0.1) 0%, transparent 62%);
+      radial-gradient(circle at top, hsl(0 0% 100%) 0%, hsl(0 0% 98%) 42%, hsl(0 0% 96%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(0 0% 98%) 100%);
+    --gradient-radial: radial-gradient(circle at center, hsl(0 0% 0% / 0.05) 0%, transparent 62%);
 
-    --shadow-soft: 0 16px 36px -22px rgba(0, 0, 0, 0.68);
-    --shadow-medium: 0 28px 70px -32px rgba(0, 0, 0, 0.78);
-    --shadow-strong: 0 34px 94px -38px rgba(0, 0, 0, 0.92);
+    --shadow-soft: 0 14px 34px -26px rgba(0, 0, 0, 0.18);
+    --shadow-medium: 0 28px 70px -42px rgba(0, 0, 0, 0.22);
+    --shadow-strong: 0 34px 94px -48px rgba(0, 0, 0, 0.28);
 
     --transition-smooth: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
   }
@@ -94,6 +93,10 @@
   }
 
   html {
+    color-scheme: light;
+  }
+
+  html.dark {
     color-scheme: dark;
   }
 
@@ -176,10 +179,10 @@
   }
 
   .surface-panel {
-    @apply rounded-[1.75rem] border border-white/10 bg-card/95 shadow-medium backdrop-blur-xl;
+    @apply rounded-[1.75rem] border border-border/80 bg-card/95 shadow-medium backdrop-blur-xl;
     box-shadow:
       var(--shadow-medium),
-      inset 0 1px 0 rgba(255, 255, 255, 0.035);
+      inset 0 1px 0 rgba(255, 255, 255, 0.55);
   }
 
   .eyebrow {
@@ -194,8 +197,77 @@
 
   .app-shell-header {
     border-bottom: 1px solid hsl(var(--border) / 0.42);
-    background: rgba(12, 12, 13, 0.72);
+    background: hsl(var(--background) / 0.84);
     backdrop-filter: blur(20px);
+  }
+
+  .leader-geo-panel {
+    @apply relative overflow-hidden rounded-[1.5rem] border border-border bg-card shadow-soft;
+    isolation: isolate;
+    background-image:
+      linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--card) / 0.98) 100%),
+      linear-gradient(135deg, transparent 0 72%, hsl(var(--foreground) / 0.035) 72% 74%, transparent 74%),
+      linear-gradient(315deg, transparent 0 80%, hsl(var(--foreground) / 0.03) 80% 82%, transparent 82%),
+      radial-gradient(circle at top right, hsl(var(--foreground) / 0.04) 0, transparent 32%);
+  }
+
+  .leader-geo-panel::before,
+  .leader-geo-panel::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    z-index: 0;
+    transform: rotate(45deg);
+    border: 1px solid hsl(var(--foreground) / 0.08);
+  }
+
+  .leader-geo-panel::before {
+    right: 1rem;
+    top: 0.9rem;
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: 1rem;
+  }
+
+  .leader-geo-panel::after {
+    bottom: -1.35rem;
+    left: -1.35rem;
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 0.75rem;
+    opacity: 0.7;
+  }
+
+  .leader-geo-panel > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .leader-geo-subcard {
+    background-image:
+      linear-gradient(180deg, hsl(var(--background) / 0.92) 0%, hsl(var(--background) / 0.86) 100%),
+      linear-gradient(135deg, transparent 0 78%, hsl(var(--foreground) / 0.03) 78% 80%, transparent 80%);
+  }
+
+  .leader-geo-nav {
+    background-image:
+      linear-gradient(180deg, hsl(0 0% 0% / 0.94) 0%, hsl(0 0% 0% / 0.9) 100%),
+      linear-gradient(135deg, transparent 0 82%, rgba(255, 255, 255, 0.08) 82% 84%, transparent 84%),
+      linear-gradient(315deg, transparent 0 86%, rgba(255, 255, 255, 0.05) 86% 88%, transparent 88%);
+  }
+
+  .dark .leader-geo-panel {
+    background-image:
+      linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--card) / 0.98) 100%),
+      linear-gradient(135deg, transparent 0 72%, hsl(var(--foreground) / 0.065) 72% 74%, transparent 74%),
+      linear-gradient(315deg, transparent 0 80%, hsl(var(--foreground) / 0.05) 80% 82%, transparent 82%),
+      radial-gradient(circle at top right, hsl(var(--foreground) / 0.06) 0, transparent 30%);
+  }
+
+  .dark .leader-geo-subcard {
+    background-image:
+      linear-gradient(180deg, hsl(var(--background) / 0.52) 0%, hsl(var(--background) / 0.4) 100%),
+      linear-gradient(135deg, transparent 0 78%, hsl(var(--foreground) / 0.05) 78% 80%, transparent 80%);
   }
 
   .space-y-responsive > * + * {
@@ -220,10 +292,10 @@
 @keyframes breathing {
   0%, 100% {
     transform: scale(1);
-    filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.08));
+    filter: drop-shadow(0 0 18px rgba(0, 0, 0, 0.08));
   }
   50% {
     transform: scale(1.015);
-    filter: drop-shadow(0 0 24px rgba(255, 255, 255, 0.14));
+    filter: drop-shadow(0 0 24px rgba(0, 0, 0, 0.14));
   }
 }

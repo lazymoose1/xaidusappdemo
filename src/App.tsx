@@ -28,8 +28,6 @@ const ParentDashboard = lazy(() => import("./pages/ParentDashboard"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const ParentSignupPage = lazy(() => import("./pages/ParentSignupPage"));
 const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
-const ParentOnboardingPage = lazy(() => import("./pages/ParentOnboardingPage"));
-const LeaderOnboardingPage = lazy(() => import("./pages/LeaderOnboardingPage"));
 const ScoutOnboardingPage = lazy(() => import("./pages/ScoutOnboardingPage"));
 const LeaderDashboardPage = lazy(() => import("./pages/LeaderDashboardPage"));
 const ParentAuthPage = lazy(() => import("./pages/auth/ParentAuthPage"));
@@ -83,8 +81,6 @@ const AppContent = () => {
           <Route path="/auth/leader" element={<LeaderAuthPage />} />
           <Route path="/parent-signup" element={<ParentSignupPage />} />
           <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
-          <Route path="/onboarding/parent" element={<ProtectedRoute><ParentOnboardingPage /></ProtectedRoute>} />
-          <Route path="/onboarding/leader" element={<ProtectedRoute><LeaderOnboardingPage /></ProtectedRoute>} />
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
         <Route path="/feeds" element={<ProtectedRoute><FeedsPage /></ProtectedRoute>} />
         <Route path="/feeds/:id" element={<ProtectedRoute><PostDetailPage /></ProtectedRoute>} />
@@ -108,7 +104,7 @@ const AppContent = () => {
         <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
-      {!location.pathname.startsWith('/auth') && location.pathname !== '/parent-signup' && !location.pathname.startsWith('/onboarding') && location.pathname !== '/scout-onboarding' && location.pathname !== '/leader' && (
+      {!location.pathname.startsWith('/auth') && location.pathname !== '/parent-signup' && location.pathname !== '/onboarding' && location.pathname !== '/scout-onboarding' && (
         <BottomNav />
       )}
     </div>

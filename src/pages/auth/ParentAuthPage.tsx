@@ -13,15 +13,15 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Loader2, ShieldCheck, MessageSquareOff, Award } from "lucide-react";
+import { Eye, EyeOff, ShieldCheck, MessageSquareOff, Award } from "lucide-react";
 import BrandWordmark from "@/components/BrandWordmark";
-import { AuthExplainer } from "@/components/AuthExplainer";
+import AuthLoadingOverlay from "@/components/auth/AuthLoadingOverlay";
 
 const validateEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
 const ParentAuthPage = () => {
   const navigate = useNavigate();
-  const { signIn, signUpParent } = useAuth();
+  const { signIn, signUpParent, user } = useAuth();
 
   const [loading, setLoading] = useState(false);
 
@@ -37,11 +37,24 @@ const ParentAuthPage = () => {
   const [showCreatePassword, setShowCreatePassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [inviteCode, setInviteCode] = useState("");
+
   const [activeTab, setActiveTab] = useState<"signin" | "create">("signin");
+
+  const loadingTitle = activeTab === "signin" ? "Opening your family view" : "Creating your parent account";
+  const loadingDescription = activeTab === "signin"
+    ? "Bringing in your teen's progress snapshot, streaks, and support prompts."
+    : "Connecting your account so you can see progress without turning home into surveillance.";
 
   useEffect(() => {
     document.title = "Xaidus | Parent Sign In";
   }, []);
+
+  useEffect(() => {
+    if (user?.role === "parent") {
+      navigate("/", { replace: true });
+    }
+  }, [user?.role, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +73,6 @@ const ParentAuthPage = () => {
         toast({ title: "Sign in failed", description: "We couldn't sign you in with those details.", variant: "destructive" });
         return;
       }
-      navigate("/dashboard");
     } finally {
       setLoading(false);
     }
@@ -86,22 +98,28 @@ const ParentAuthPage = () => {
     }
     setLoading(true);
     try {
-      const { error } = await signUpParent(createEmail, createPassword, fullName);
+      const { error } = await signUpParent(createEmail, createPassword, fullName, inviteCode || undefined);
       if (error) {
         toast({ title: "Account creation failed", description: error.message, variant: "destructive" });
         return;
       }
-      toast({ title: "Account created", description: "Parent account created. Next we'll tailor your dashboard and support style." });
-      navigate("/onboarding/parent");
+      toast({ title: "Account created", description: "Parent account created. You can now sign in and connect to your teen's progress summary." });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      <Card className="w-full max-w-md border-white/10 shadow-strong">
-        <CardHeader className="space-y-2 pb-4">
+    <div className="min-h-screen flex items-start justify-center bg-background px-2 py-5 sm:px-4 sm:items-center sm:py-7">
+      <Card className="relative w-full max-w-2xl overflow-hidden border-white/10 shadow-strong">
+        {loading && (
+          <AuthLoadingOverlay
+            title={loadingTitle}
+            description={loadingDescription}
+            variant="parent"
+          />
+        )}
+        <CardHeader className="space-y-2 pb-4 sm:pb-5">
           <Link
             to="/auth"
             className="text-sm text-muted-foreground hover:text-primary transition-colors"
@@ -119,29 +137,40 @@ const ParentAuthPage = () => {
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-6">
-          <AuthExplainer variant="parent" />
+        <CardContent className="space-y-5 sm:space-y-6">
           {/* Phase II reframing — shown before the form */}
-          <div className="space-y-3 pb-2">
-            <div className="flex items-start gap-3">
-              <MessageSquareOff className="w-4 h-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-foreground break-words">Effort, not messages</p>
-                <p className="text-xs text-muted-foreground break-words">You'll see check-ins, streaks, and goals — never private conversations.</p>
+          <div className="space-y-3 pb-1 sm:pb-2">
+            <div className="rounded-2xl border border-border/70 bg-card/90 p-4">
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-start">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-muted/70 xl:h-14 xl:w-14">
+                  <MessageSquareOff className="h-5 w-5 text-foreground/85" />
+                </div>
+                <div className="min-w-0 space-y-1">
+                <p className="text-base font-medium leading-tight text-foreground">Effort, not messages</p>
+                <p className="text-sm leading-6 text-muted-foreground">You'll see check-ins, streaks, and goals, never private conversations.</p>
+                </div>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <ShieldCheck className="w-4 h-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-foreground break-words">Insight without invasion</p>
-                <p className="text-xs text-muted-foreground break-words">Designed to shift conversations from "what are you doing on your phone" to "I saw you making progress."</p>
+            <div className="rounded-2xl border border-border/70 bg-card/90 p-4">
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-start">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-muted/70 xl:h-14 xl:w-14">
+                  <ShieldCheck className="h-5 w-5 text-foreground/85" />
+                </div>
+                <div className="min-w-0 space-y-1">
+                <p className="text-base font-medium leading-tight text-foreground">Insight without invasion</p>
+                <p className="text-sm leading-6 text-muted-foreground">Designed to shift conversations from “what are you doing on your phone?” to “I saw you making progress.”</p>
+                </div>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <Award className="w-4 h-4 mt-0.5 text-muted-foreground flex-shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-foreground break-words">A record that follows her</p>
-                <p className="text-xs text-muted-foreground break-words">Every achievement is permanently and independently verified — ready for scholarships, applications, and beyond.</p>
+            <div className="rounded-2xl border border-border/70 bg-card/90 p-4">
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-start">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-muted/70 xl:h-14 xl:w-14">
+                  <Award className="h-5 w-5 text-foreground/85" />
+                </div>
+                <div className="min-w-0 space-y-1">
+                <p className="text-base font-medium leading-tight text-foreground">A record that follows her</p>
+                <p className="text-sm leading-6 text-muted-foreground">Every achievement is permanently and independently verified, ready for scholarships, applications, and beyond.</p>
+                </div>
               </div>
             </div>
           </div>
@@ -209,7 +238,6 @@ const ParentAuthPage = () => {
                   className="w-full bg-accent hover:bg-accent/90 text-accent-foreground h-11 font-semibold"
                   disabled={loading}
                 >
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {loading ? "Signing in..." : "Sign In"}
                 </Button>
 
@@ -314,9 +342,27 @@ const ParentAuthPage = () => {
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="inviteCode">
+                    Child or Family Invite Code{" "}
+                    <span className="text-muted-foreground font-normal">(optional)</span>
+                  </Label>
+                  <Input
+                    id="inviteCode"
+                    type="text"
+                    placeholder="Enter invite code"
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value)}
+                    disabled={loading}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Use the code shared by your teen, troop leader, or school.
+                  </p>
+                </div>
+
                 <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
                   <p className="text-xs text-muted-foreground">
-                    After account creation, you'll get a short parent setup where you choose your coaching style and optionally link your teen.
+                    You'll see effort and achievements — check-ins, streaks, badges. Never messages, posts, or private content.
                   </p>
                 </div>
 
@@ -325,7 +371,6 @@ const ParentAuthPage = () => {
                   className="w-full bg-accent hover:bg-accent/90 text-accent-foreground h-11 font-semibold"
                   disabled={loading}
                 >
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {loading ? "Creating account..." : "Create Parent Account"}
                 </Button>
 

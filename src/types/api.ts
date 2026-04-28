@@ -327,6 +327,151 @@ export type TroopDashboard = {
   weeklyResetRate: number;
   teamCurrentProgress: number;
   totalScouts: number;
+  groupSnapshot?: {
+    activeScouts: number;
+    goalsCreatedThisWeek: number;
+    goalsCompletedThisWeek: number;
+    checkinsThisWeek: number;
+    trend: number[];
+    checkinTrend: number[];
+    trendLabel: string;
+    trendDirection: 'up' | 'steady' | 'down';
+    supportSignal: string;
+  };
+  recognitionSnapshot?: {
+    rewardsIssuedThisWeek: number;
+    youthRecognizedThisWeek: number;
+    serviceHoursLoggedThisWeek: number;
+    marksEarnedThisWeek: number;
+    momentsEarnedThisWeek: number;
+    moovasUnlockedThisWeek: number;
+    recentRecognitions: {
+      id: string;
+      youthId: string;
+      youthName: string;
+      title: string;
+      credentialType: string;
+      earnedAt: string;
+    }[];
+  };
+  themeSummary?: {
+    topThemes: { label: string; count: number; source: 'goal_category' | 'badge_focus' | 'interest' }[];
+    cohorts: {
+      cohortCode: string;
+      memberCount: number;
+      activeScouts: number;
+      goalsCompletedThisWeek: number;
+      themes: string[];
+    }[];
+    conversationStarters: string[];
+  };
+  caseloadQueue?: {
+    id: string;
+    youthName: string;
+    supportStatus: 'needs_support' | 'follow_up_due' | 'on_track' | 'resolved';
+    priority: 'high' | 'medium' | 'low';
+    reason: string;
+    lastCheckInLabel: string;
+    lastCheckInStatus?: string | null;
+    missedCheckInSignal: number;
+    stalledProgress: boolean;
+    currentGoalStatus: string;
+    nextFollowUpDate?: string | null;
+    assignedStaffLabel?: string | null;
+    latestNoteSnippet?: string | null;
+    nextStep?: string | null;
+  }[];
+  followUpsDue?: {
+    youthId: string;
+    youthName: string;
+    dueDate?: string | null;
+    nextStep: string;
+    status: 'needs_support' | 'follow_up_due' | 'on_track' | 'resolved';
+  }[];
+  recentSupportActivity?: {
+    id: string;
+    youthId: string;
+    youthName: string;
+    note: string;
+    tags: string[];
+    createdAt: string;
+    status: 'needs_support' | 'follow_up_due' | 'on_track' | 'resolved';
+  }[];
+  caseloadSummary?: {
+    needsAttentionNow: number;
+    followUpsOverdue: number;
+    onTrackThisWeek: number;
+    stalledProgress: number;
+  };
+};
+
+export type LeaderSupportProfile = {
+  scout: {
+    id: string;
+    nickname: string;
+    avatarUrl?: string | null;
+    cohortCode?: string | null;
+  };
+  summary: {
+    daysCheckedInThisWeek: number;
+    activeGoalCount: number;
+    completedThisWeek: number;
+    supportStatus: 'needs_support' | 'follow_up_due' | 'on_track' | 'resolved';
+    lastCheckInLabel: string;
+  };
+  supportFlags: string[];
+  recognition: {
+    totalCredentials: number;
+    recognitionsThisWeek: number;
+    serviceHoursLogged: number;
+    recentCredentials: {
+      id: string;
+      title: string;
+      credentialType: string;
+      earnedAt: string;
+    }[];
+  };
+  activeGoals: {
+    id: string;
+    title: string;
+    progress: number;
+    microStep?: string | null;
+    badgeFocus?: string | null;
+    category?: string | null;
+  }[];
+  timeline: {
+    id: string;
+    type: 'checkin' | 'support_note' | 'credential';
+    label: string;
+    detail: string;
+    createdAt: string;
+  }[];
+  supportNotes: {
+    id: string;
+    note: string;
+    tags: string[];
+    nextStep?: string | null;
+    followUpDate?: string | null;
+    status: 'needs_support' | 'follow_up_due' | 'on_track' | 'resolved';
+    createdAt: string;
+  }[];
+  nextFollowUp?: string | null;
+};
+
+export type CreateLeaderSupportNoteInput = {
+  note: string;
+  tags?: (
+    | 'outreach_attempted'
+    | 'youth_responded'
+    | 'missed_appointment'
+    | 'goal_planning_help'
+    | 'accountability_support'
+    | 'needs_escalation'
+    | 'resolved'
+  )[];
+  nextStep?: string;
+  followUpDate?: string;
+  status?: 'needs_support' | 'follow_up_due' | 'on_track' | 'resolved';
 };
 
 export type ScoutCheckinInput = {

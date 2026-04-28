@@ -35,15 +35,15 @@ const SegmentSection = ({
       </div>
       <div className="space-y-1.5">
         {scouts.map((s) => (
-          <div key={s.id} className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
-            <div>
-              <p className="text-sm text-foreground">{s.nickname}</p>
+          <div key={s.id} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+            <div className="min-w-0">
+              <p className="text-sm text-foreground break-words">{s.nickname}</p>
               <p className="text-xs text-muted-foreground">{s.daysThisWeek} day{s.daysThisWeek !== 1 ? "s" : ""} this week</p>
             </div>
             <Button
               size="sm"
               variant="ghost"
-              className="text-xs h-7 px-2 text-muted-foreground hover:text-foreground"
+              className="h-7 shrink-0 px-2 text-xs text-muted-foreground hover:text-foreground"
               onClick={() => onNudge(s.id, s.nickname)}
             >
               Nudge

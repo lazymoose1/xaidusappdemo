@@ -9,6 +9,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import { WeeklyResetButton } from "@/components/WeeklyResetButton";
 import { authApi } from "@/api/endpoints";
 import BrandWordmark from "@/components/BrandWordmark";
+import ThemeModeRow from "@/components/ThemeModeRow";
 import ProfileFormSection from "./ProfileFormSection";
 import ArchetypeSection from "./ArchetypeSection";
 import InterestsSection from "./InterestsSection";
@@ -255,6 +256,10 @@ const SettingsPage = () => {
               {roleError && !codeSent && <p className="text-xs text-destructive">{roleError}</p>}
             </div>
           )}
+        </div>
+
+        <div className="pb-6 border-b border-border">
+          <ThemeModeRow />
         </div>
 
         {/* Feed Type */}

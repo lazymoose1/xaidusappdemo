@@ -13,15 +13,15 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import BrandWordmark from "@/components/BrandWordmark";
-import { AuthExplainer } from "@/components/AuthExplainer";
+import AuthLoadingOverlay from "@/components/auth/AuthLoadingOverlay";
 
 const validateEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
 const LeaderAuthPage = () => {
   const navigate = useNavigate();
-  const { signIn, signUpLeader } = useAuth();
+  const { signIn, signUpLeader, user } = useAuth();
 
   const [loading, setLoading] = useState(false);
 
@@ -31,9 +31,10 @@ const LeaderAuthPage = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   // Create-account fields
+  const [organizationName, setOrganizationName] = useState("");
   const [fullName, setFullName] = useState("");
   const [createEmail, setCreateEmail] = useState("");
-  const [leaderInviteCode, setLeaderInviteCode] = useState("");
+  const [organizationCode, setOrganizationCode] = useState("");
   const [createPassword, setCreatePassword] = useState("");
   const [showCreatePassword, setShowCreatePassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -41,9 +42,20 @@ const LeaderAuthPage = () => {
 
   const [activeTab, setActiveTab] = useState<"signin" | "create">("signin");
 
+  const loadingTitle = activeTab === "signin" ? "Opening your support workspace" : "Setting up your leader space";
+  const loadingDescription = activeTab === "signin"
+    ? "Bringing your caseload, follow-ups, and recognition tools into view."
+    : "Getting your organization space ready so your team can start supporting youth.";
+
   useEffect(() => {
     document.title = "Xaidus | Leader Sign In";
   }, []);
+
+  useEffect(() => {
+    if (user?.role === "scout_leader") {
+      navigate("/leader", { replace: true });
+    }
+  }, [user?.role, navigate]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +74,6 @@ const LeaderAuthPage = () => {
         toast({ title: "Sign in failed", description: "We couldn't sign you in with those details.", variant: "destructive" });
         return;
       }
-      navigate("/leader");
     } finally {
       setLoading(false);
     }
@@ -70,6 +81,10 @@ const LeaderAuthPage = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!organizationName.trim()) {
+      toast({ title: "Organization name required", description: "Organization name is required.", variant: "destructive" });
+      return;
+    }
     if (!fullName.trim()) {
       toast({ title: "Full name required", description: "Full name is required.", variant: "destructive" });
       return;
@@ -78,8 +93,8 @@ const LeaderAuthPage = () => {
       toast({ title: "Invalid email", description: "Enter a valid email address.", variant: "destructive" });
       return;
     }
-    if (!leaderInviteCode.trim()) {
-      toast({ title: "Leader invite code required", description: "Enter the leader invite code for your deployment.", variant: "destructive" });
+    if (!organizationCode.trim()) {
+      toast({ title: "Organization code required", description: "Enter a valid troop, school, or program code.", variant: "destructive" });
       return;
     }
     if (createPassword.length < 8) {
@@ -92,21 +107,27 @@ const LeaderAuthPage = () => {
     }
     setLoading(true);
     try {
-      const { error } = await signUpLeader(createEmail, createPassword, fullName, leaderInviteCode);
+      const { error } = await signUpLeader(createEmail, createPassword, fullName, organizationCode);
       if (error) {
         toast({ title: "Account creation failed", description: error.message, variant: "destructive" });
         return;
       }
-      toast({ title: "Account created", description: "Leader account created. Next we'll tailor your dashboard and program setup." });
-      navigate("/onboarding/leader");
+      toast({ title: "Account created", description: "Leader account created. You can now sign in and manage your organization space." });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-      <Card className="w-full max-w-md border-white/10 shadow-strong">
+    <div className="min-h-screen flex items-start justify-center bg-background px-3 py-6 sm:px-5 sm:items-center sm:py-8">
+      <Card className="relative w-full max-w-2xl overflow-hidden border-white/10 shadow-strong">
+        {loading && (
+          <AuthLoadingOverlay
+            title={loadingTitle}
+            description={loadingDescription}
+            variant="leader"
+          />
+        )}
         <CardHeader className="space-y-2 pb-4">
           <Link
             to="/auth"
@@ -128,12 +149,11 @@ const LeaderAuthPage = () => {
         </CardHeader>
 
         <CardContent>
-          <AuthExplainer variant="leader" />
           <Tabs
             value={activeTab}
             onValueChange={(v) => setActiveTab(v as "signin" | "create")}
           >
-            <TabsList className="w-full mb-6">
+            <TabsList className="grid w-full grid-cols-2 mb-6 h-auto">
               <TabsTrigger value="signin" className="flex-1 min-w-0 text-xs sm:text-sm">
                 Sign In
               </TabsTrigger>
@@ -192,7 +212,6 @@ const LeaderAuthPage = () => {
                   className="w-full bg-accent hover:bg-accent/90 text-accent-foreground h-11 font-semibold"
                   disabled={loading}
                 >
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {loading ? "Signing in..." : "Sign In"}
                 </Button>
 
@@ -212,6 +231,22 @@ const LeaderAuthPage = () => {
             {/* ── Create Account ── */}
             <TabsContent value="create">
               <form onSubmit={handleCreate} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="organizationName">Organization Name</Label>
+                  <Input
+                    id="organizationName"
+                    type="text"
+                    placeholder="Girl Scouts Troop 4521"
+                    value={organizationName}
+                    onChange={(e) => setOrganizationName(e.target.value)}
+                    disabled={loading}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    This can be a troop, school, club, or program name.
+                  </p>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Your Full Name</Label>
                   <Input
@@ -242,20 +277,20 @@ const LeaderAuthPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="leaderInviteCode">
-                    Leader Invite Code
+                  <Label htmlFor="organizationCode">
+                    Troop / School / Program Code
                   </Label>
                   <Input
-                    id="leaderInviteCode"
+                    id="organizationCode"
                     type="text"
-                    placeholder="Enter your leader invite code"
-                    value={leaderInviteCode}
-                    onChange={(e) => setLeaderInviteCode(e.target.value)}
+                    placeholder="Enter your code"
+                    value={organizationCode}
+                    onChange={(e) => setOrganizationCode(e.target.value)}
                     disabled={loading}
                     required
                   />
                   <p className="text-xs text-muted-foreground">
-                    This verifies that your deployment allows leader account creation.
+                    This connects you to the correct organization space.
                   </p>
                 </div>
 
@@ -320,7 +355,7 @@ const LeaderAuthPage = () => {
 
                 <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
                   <p className="text-xs text-muted-foreground">
-                    After account creation, you'll get a short leader setup before creating your troop or program space.
+                    Leader accounts are used to manage weekly reset, check-ins, and group support. Actions are role-based and logged for accountability.
                   </p>
                 </div>
 
@@ -329,7 +364,6 @@ const LeaderAuthPage = () => {
                   className="w-full bg-accent hover:bg-accent/90 text-accent-foreground h-11 font-semibold"
                   disabled={loading}
                 >
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {loading ? "Creating account..." : "Create Leader Account"}
                 </Button>
 

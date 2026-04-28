@@ -28,6 +28,12 @@ const BANNED_PHRASES = [
   'public update','post an update','ask one question to your audience',
 ];
 
+const CRISIS_RE = /\b(suicide|kill myself|want to die|self harm|self-harm|cut myself|overdose|end my life)\b/i;
+const SEXUAL_RE = /\b(sext|nudes|porn|hook up|hookup|sex tape|explicit pics?)\b/i;
+const SUBSTANCE_RE = /\b(buy weed|buy alcohol|get drunk|vape tricks|hide vaping|fake id|buy a vape)\b/i;
+const VIOLENCE_RE = /\b(bring a weapon|hide a weapon|stab|jump someone|fight plan|beat up)\b/i;
+const ADULT_ONLY_RE = /\b(mortgage|401k|brokerage|stock options|bankruptcy|tax return|taxes for my business|lease agreement|vendor contract)\b/i;
+
 export type AiAdviceResponse = {
   ok: boolean;
   suggestion: string;
@@ -36,7 +42,7 @@ export type AiAdviceResponse = {
   rationale?: string;
   tone?: string;
   ageGroup?: string;
-  meta?: { fallbackUsed: boolean; socialContextUsed: boolean; providersConnected: string[] };
+  meta?: { fallbackUsed: boolean; socialContextUsed: boolean; providersConnected: string[]; guardrailTriggered?: string };
 };
 
 const SAFE_FALLBACK: AiAdviceResponse = {
@@ -49,6 +55,49 @@ const SAFE_FALLBACK: AiAdviceResponse = {
   ageGroup:   "14-18",
   meta: { fallbackUsed: true, socialContextUsed: false, providersConnected: [] },
 };
+
+function getAgeBandGuardrail(goal: string): AiAdviceResponse | null {
+  const text = goal.trim();
+  if (!text) return null;
+
+  if (CRISIS_RE.test(text)) {
+    return {
+      ok: true,
+      suggestion: "This sounds too important for a goal tip. Reach out to a trusted adult right now.",
+      nextStep: "Tell a parent, caregiver, counselor, coach, or school adult what is going on as soon as possible.",
+      rationale: "Safety comes first, and real-time support from a trusted adult matters more than a coaching suggestion here.",
+      tone: "calm",
+      ageGroup: "14-18",
+      meta: { fallbackUsed: true, socialContextUsed: false, providersConnected: [], guardrailTriggered: 'crisis' },
+    };
+  }
+
+  if (SEXUAL_RE.test(text) || SUBSTANCE_RE.test(text) || VIOLENCE_RE.test(text)) {
+    return {
+      ok: true,
+      suggestion: "I can help with a safer goal instead: focus on one school, skill, or personal step you can actually do this week.",
+      nextStep: "Rewrite the goal as one positive step you can finish in 10 minutes without risking your safety or privacy.",
+      rationale: "The app keeps coaching in a teen-safe zone and redirects away from risky or explicit requests.",
+      tone: "calm",
+      ageGroup: "14-18",
+      meta: { fallbackUsed: true, socialContextUsed: false, providersConnected: [], guardrailTriggered: 'restricted_request' },
+    };
+  }
+
+  if (ADULT_ONLY_RE.test(text)) {
+    return {
+      ok: true,
+      suggestion: "Let's shrink that into a teen-sized version you can control this week.",
+      nextStep: "Pick one school, service, skill, or planning step you can do in 10 minutes without adult paperwork or money.",
+      rationale: "The app is tuned for teen-appropriate action, so adult-only logistics get reframed into a realistic next move.",
+      tone: "calm",
+      ageGroup: "14-18",
+      meta: { fallbackUsed: true, socialContextUsed: false, providersConnected: [], guardrailTriggered: 'adult_only' },
+    };
+  }
+
+  return null;
+}
 
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
 const PHONE_RE = /(\+?1?\s?)?(\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4})/;
@@ -177,6 +226,11 @@ export async function tinyAdvice(
   // Resolve fields: prefer DB context, fall back to sanitized body
   const goal = goalFromBody || ctx?.goal?.title || '';
   if (!goal) return { ...SAFE_FALLBACK };
+
+  const ageBandGuardrail = getAgeBandGuardrail(goal);
+  if (ageBandGuardrail) {
+    return ageBandGuardrail;
+  }
 
   const goalType      = ctx?.goal?.goalType      || _sanitizeEnum(body.goalType,      VALID_GOAL_TYPES,   'other');
   const goalSize      = ctx?.goal?.sizePreset     || _sanitizeEnum(body.goalSize,      VALID_GOAL_SIZES,   'small');

@@ -31,6 +31,8 @@ import type {
   ApiForumPost,
   ApiForumReply,
   ApiNotificationsResponse,
+  LeaderSupportProfile,
+  CreateLeaderSupportNoteInput,
 } from '@/types/api';
 
 export const goalsApi = {
@@ -174,6 +176,10 @@ export const troopApi = {
     apiFetch<{ success: boolean; proofHash: string }>('/api/troops/mine/award-badge', { method: 'POST', body: JSON.stringify(data) }),
   getScoutRecord: (scoutId: string) =>
     apiFetch<ScoutPortableRecord>(`/api/troops/mine/scouts/${scoutId}/record`),
+  getScoutSupportProfile: (scoutId: string) =>
+    apiFetch<LeaderSupportProfile>(`/api/troops/mine/scouts/${scoutId}/support-profile`),
+  addSupportNote: (scoutId: string, data: CreateLeaderSupportNoteInput) =>
+    apiFetch(`/api/troops/mine/scouts/${scoutId}/support-notes`, { method: 'POST', body: JSON.stringify(data) }),
   logServiceHours: (data: { toUserId: string; hours: number; projectName?: string; description?: string }) =>
     apiFetch<{ success: boolean; proofHash: string }>('/api/troops/mine/log-service-hours', { method: 'POST', body: JSON.stringify(data) }),
 };

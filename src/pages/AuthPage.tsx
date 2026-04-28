@@ -6,12 +6,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Compass, Eye, EyeOff, Sparkles, Target } from "lucide-react";
 import { SocialSSOButtons } from "@/components/SocialSSOButtons";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { goalsApi } from "@/api/endpoints";
 import BrandWordmark from "@/components/BrandWordmark";
-import { AuthExplainer } from "@/components/AuthExplainer";
+import AuthLoadingOverlay from "@/components/auth/AuthLoadingOverlay";
+
+const newUserSteps = [
+  {
+    icon: Target,
+    title: "Pick one small goal",
+    description: "Start with one clear goal that turns pressure into a next step you can actually do today.",
+  },
+  {
+    icon: Sparkles,
+    title: "Check in fast",
+    description: "The daily pulse is built to take seconds, not become another thing hanging over you.",
+  },
+  {
+    icon: Compass,
+    title: "Build visible progress",
+    description: "Streaks, weekly momentum, and TINY guidance help you see movement before things pile up.",
+  },
+] as const;
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -38,6 +56,22 @@ const AuthPage = () => {
   const [scoutPin, setScoutPin] = useState('');
   const { signUp, signIn, scoutSignIn } = useAuth();
   const navigate = useNavigate();
+
+  const authLoadingTitle = authMode === "scout"
+    ? "Opening your troop space"
+    : authMode === "adult"
+    ? "Getting things ready"
+    : isLogin
+    ? "Signing you in"
+    : "Building your account";
+
+  const authLoadingDescription = authMode === "scout"
+    ? "Pulling in your latest check-ins, goals, and troop setup."
+    : authMode === "adult"
+    ? "Warming up the right sign-in path for your role."
+    : isLogin
+    ? "Bringing your goals, streaks, and daily rhythm back into view."
+    : "Setting up your first step so you can land in Xaidus ready to move.";
 
   useEffect(() => {
     document.title = "Xaidus | Sign in";
@@ -125,8 +159,15 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-background" data-page-id="signup">
-      <Card className="w-full max-w-[31rem] border-white/10 shadow-strong">
+    <div className="min-h-screen flex items-start justify-center bg-background px-3 py-6 sm:px-5 sm:items-center sm:py-8" data-page-id="signup">
+      <Card className="relative w-full max-w-[38rem] overflow-hidden border-white/10 shadow-strong">
+        {loading && (
+          <AuthLoadingOverlay
+            title={authLoadingTitle}
+            description={authLoadingDescription}
+            variant="teen"
+          />
+        )}
         <CardHeader className="space-y-4 pb-6 pt-7">
           <div className="flex justify-center">
             <BrandWordmark />
@@ -148,7 +189,38 @@ const AuthPage = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <AuthExplainer variant={authMode === 'adult' ? 'adult' : 'teen'} />
+          {(authMode === 'scout' || authMode === 'email') && (
+            <div className="mb-6 space-y-3 rounded-[1.75rem] border border-white/10 bg-card/95 p-4 shadow-soft sm:p-5">
+              <div className="space-y-1 text-left">
+                <p className="eyebrow">How new users get started</p>
+                <p className="text-sm leading-6 text-muted-foreground">
+                  New users land in one simple rhythm: goal, pulse, progress.
+                </p>
+              </div>
+              <div className="space-y-3">
+                {newUserSteps.map(({ icon: Icon, title, description }) => (
+                  <div
+                    key={title}
+                    className="rounded-[1.4rem] border border-white/10 bg-background/75 p-4"
+                  >
+                    <div className="flex flex-col gap-3 xl:flex-row xl:items-start">
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.1rem] bg-muted/75 xl:h-16 xl:w-16">
+                        <Icon className="h-7 w-7 text-foreground/90" />
+                      </div>
+                      <div className="min-w-0 space-y-1">
+                        <p className="text-xl font-semibold leading-tight text-foreground">
+                          {title}
+                        </p>
+                        <p className="text-base leading-7 text-muted-foreground">
+                          {description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {authMode === 'scout' && (
             <form
               className="space-y-4"
@@ -185,8 +257,7 @@ const AuthPage = () => {
                 <Input id="scoutPin" type="password" inputMode="numeric" placeholder="••••" maxLength={6} value={scoutPin} onChange={(e) => setScoutPin(e.target.value.replace(/\D/g, ''))} disabled={loading} />
               </div>
               <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground h-11 font-semibold" disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {loading ? "Signing in..." : "Enter Troop"}
+                {loading ? "Opening troop..." : "Enter Troop"}
               </Button>
               <p className="text-xs text-muted-foreground text-center">
                 Your leader sets up your PIN during troop onboarding.
@@ -335,7 +406,6 @@ const AuthPage = () => {
               className="w-full bg-accent hover:bg-accent/90 text-accent-foreground h-11 font-semibold"
               disabled={loading}
             >
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {loading ? "Please wait..." : (isLogin ? "Sign In" : "Sign Up")}
             </Button>
           </form>
@@ -380,7 +450,7 @@ const AuthPage = () => {
         setShowQuickGoal(open);
         if (!open) navigate("/");
       }}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[calc(100dvh-1.5rem)] sm:max-h-[90vh] border-white/10">
           <DialogHeader>
             <DialogTitle className="text-xl font-serif">Set your first goal (30 seconds)</DialogTitle>
           </DialogHeader>
