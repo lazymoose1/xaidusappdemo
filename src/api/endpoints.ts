@@ -95,7 +95,7 @@ export const usersApi = {
 };
 
 export const settingsApi = {
-  savePreferences: (data: { reminderWindows?: string[]; coachStyle?: string }) =>
+  savePreferences: (data: { reminderWindows?: string[]; coachStyle?: string; displayName?: string; organizationType?: string }) =>
     apiFetch('/api/settings/preferences', { method: 'POST', body: JSON.stringify(data) }),
 };
 
@@ -105,7 +105,7 @@ export const onboardingApi = {
 
 export const authApi = {
   getMe: () => apiFetch<ApiUser>('/api/auth/me'),
-  registerProfile: (data: { displayName?: string; role?: string; childName?: string; leaderInviteCode?: string }) =>
+  registerProfile: (data: { displayName?: string; role?: string; childName?: string; leaderInviteCode?: string; organizationType?: string }) =>
     apiFetch<ApiUser>('/api/auth/register-profile', { method: 'POST', body: JSON.stringify(data) }),
   saveSettings: (data: SaveSettingsInput) => apiFetch('/api/auth/settings', { method: 'POST', body: JSON.stringify(data) }),
   sendRoleCode: (targetRole: string) =>

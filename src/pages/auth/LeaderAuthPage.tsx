@@ -11,11 +11,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import BrandWordmark from "@/components/BrandWordmark";
 import AuthLoadingOverlay from "@/components/auth/AuthLoadingOverlay";
+import { DEFAULT_ORGANIZATION_TYPE, ORGANIZATION_TYPE_OPTIONS } from "@/lib/organization-language";
 
 const validateEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
@@ -39,6 +41,7 @@ const LeaderAuthPage = () => {
   const [showCreatePassword, setShowCreatePassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [organizationType, setOrganizationType] = useState(DEFAULT_ORGANIZATION_TYPE);
 
   const [activeTab, setActiveTab] = useState<"signin" | "create">("signin");
 
@@ -107,7 +110,7 @@ const LeaderAuthPage = () => {
     }
     setLoading(true);
     try {
-      const { error } = await signUpLeader(createEmail, createPassword, fullName, organizationCode);
+      const { error } = await signUpLeader(createEmail, createPassword, fullName, organizationCode, organizationType);
       if (error) {
         toast({ title: "Account creation failed", description: error.message, variant: "destructive" });
         return;
@@ -292,6 +295,22 @@ const LeaderAuthPage = () => {
                   <p className="text-xs text-muted-foreground">
                     This connects you to the correct organization space.
                   </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Organization type</Label>
+                  <Select value={organizationType} onValueChange={setOrganizationType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose organization type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ORGANIZATION_TYPE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">

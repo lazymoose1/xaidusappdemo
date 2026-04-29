@@ -11,10 +11,11 @@ const router = Router();
 router.use(authLimiter);
 
 const registerProfileSchema = z.object({
-  displayName: z.string().min(1).max(50),
+  displayName: z.string().min(1).max(50).optional(),
   role: z.enum(['teen', 'parent', 'scout_leader']).default('teen'),
   leaderInviteCode: z.string().optional(),
   childName: z.string().optional(),
+  organizationType: z.enum(['public_school', 'you_cleveland', 'open_doors_academy', 'default_generic']).optional(),
 });
 
 const sendRoleCodeSchema = z.object({

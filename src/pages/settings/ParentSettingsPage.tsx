@@ -4,10 +4,12 @@ import { ArrowLeft, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ThemeModeRow from "@/components/ThemeModeRow";
 import { useAuth } from "@/providers/AuthProvider";
-import { authApi } from "@/api/endpoints";
+import { authApi, settingsApi } from "@/api/endpoints";
 import { useToast } from "@/hooks/use-toast";
+import { ORGANIZATION_TYPE_OPTIONS, normalizeOrganizationType } from "@/lib/organization-language";
 
 const ParentSettingsPage = () => {
   const navigate = useNavigate();
@@ -15,6 +17,7 @@ const ParentSettingsPage = () => {
   const { user, signOut, refreshProfile } = useAuth();
 
   const [displayName, setDisplayName] = useState(user?.displayName || "");
+  const [organizationType, setOrganizationType] = useState(normalizeOrganizationType(user?.organizationType));
 
   // Role-change state (OTP flow)
   const [pendingRole, setPendingRole] = useState<string>(user?.role || "parent");
@@ -27,10 +30,17 @@ const ParentSettingsPage = () => {
 
   useEffect(() => {
     if (user) setDisplayName(user.displayName || "");
+    if (user) setOrganizationType(normalizeOrganizationType(user.organizationType));
   }, [user]);
 
-  const handleSave = () => {
-    toast({ title: "Saved", description: "Display name updated." });
+  const handleSave = async () => {
+    try {
+      await settingsApi.savePreferences({ displayName, organizationType });
+      await refreshProfile();
+      toast({ title: "Saved", description: "Settings updated." });
+    } catch (error) {
+      toast({ title: "Couldn't save settings", description: error instanceof Error ? error.message : "Try again.", variant: "destructive" });
+    }
   };
 
   const handleSignOut = async () => {
@@ -125,6 +135,28 @@ const ParentSettingsPage = () => {
           />
           <Button onClick={handleSave} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
             Save
+          </Button>
+        </div>
+
+        <div className="space-y-3 pb-6 border-b border-border">
+          <h3 className="font-serif text-lg text-foreground">Organization type</h3>
+          <Select value={organizationType} onValueChange={(value) => setOrganizationType(normalizeOrganizationType(value))}>
+            <SelectTrigger>
+              <SelectValue placeholder="Choose organization type" />
+            </SelectTrigger>
+            <SelectContent>
+              {ORGANIZATION_TYPE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            This updates organization-specific language across family and staff-facing screens.
+          </p>
+          <Button onClick={handleSave} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+            Save preferences
           </Button>
         </div>
 

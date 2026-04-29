@@ -10,12 +10,14 @@ import { WeeklyResetButton } from "@/components/WeeklyResetButton";
 import { authApi } from "@/api/endpoints";
 import BrandWordmark from "@/components/BrandWordmark";
 import ThemeModeRow from "@/components/ThemeModeRow";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ProfileFormSection from "./ProfileFormSection";
 import ArchetypeSection from "./ArchetypeSection";
 import InterestsSection from "./InterestsSection";
 import RemindersSection from "./RemindersSection";
 import SocialLinksSection from "./SocialLinksSection";
 import { useSettingsForm } from "./useSettingsForm";
+import { ORGANIZATION_TYPE_OPTIONS } from "@/lib/organization-language";
 
 const SettingsPage = () => {
   const navigate = useNavigate();
@@ -260,6 +262,30 @@ const SettingsPage = () => {
 
         <div className="pb-6 border-b border-border">
           <ThemeModeRow />
+        </div>
+
+        <div className="space-y-3 pb-6 border-b border-border">
+          <h3 className="text-center font-serif text-xl text-foreground">Organization type</h3>
+          <p className="text-sm text-muted-foreground text-center leading-relaxed px-4">
+            Use the partner language that best matches the organization you use Xaidus with.
+          </p>
+          <div className="max-w-xl mx-auto">
+            <Select value={form.organizationType} onValueChange={form.setOrganizationType}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choose organization type" />
+              </SelectTrigger>
+              <SelectContent>
+                {ORGANIZATION_TYPE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="mt-2 text-xs text-muted-foreground text-center">
+              This updates partner-specific labels like student, youth, scholar, and staff terminology.
+            </p>
+          </div>
         </div>
 
         {/* Feed Type */}

@@ -10,7 +10,10 @@ const preferencesSchema = z.object({
   theme: z.enum(['light', 'dark', 'system']).optional(),
   notifications: z.boolean().optional(),
   reminderTime: z.string().max(10).optional(),
+  reminderWindows: z.array(z.string().max(50)).optional(),
   coachStyle: z.string().max(50).optional(),
+  displayName: z.string().max(50).optional(),
+  organizationType: z.enum(['public_school', 'you_cleveland', 'open_doors_academy', 'default_generic']).optional(),
   visibility: z.enum(['public', 'friends', 'private']).optional(),
 }).strict();
 

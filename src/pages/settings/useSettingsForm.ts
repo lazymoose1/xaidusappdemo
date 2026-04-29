@@ -3,6 +3,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import { goalsApi, settingsApi } from "@/api/endpoints";
 import { useToast } from "@/hooks/use-toast";
 import { ApiGoal } from "@/types/api";
+import { DEFAULT_ORGANIZATION_TYPE, normalizeOrganizationType } from "@/lib/organization-language";
 
 export function useSettingsForm() {
   const { toast } = useToast();
@@ -24,6 +25,7 @@ export function useSettingsForm() {
   });
   const [reminderWindows, setReminderWindows] = useState<string[]>([]);
   const [coachStyle, setCoachStyle] = useState("");
+  const [organizationType, setOrganizationType] = useState(DEFAULT_ORGANIZATION_TYPE);
   const [goalSchedules, setGoalSchedules] = useState<ApiGoal[]>([]);
 
   useEffect(() => {
@@ -32,6 +34,7 @@ export function useSettingsForm() {
       setSelectedInterests(Array.isArray(user.interests) ? user.interests : []);
       setFullname(user.displayName || "");
       setEmail(user.email || "");
+      setOrganizationType(normalizeOrganizationType(user.organizationType));
     }
   }, [user]);
 
@@ -88,7 +91,13 @@ export function useSettingsForm() {
 
   const handleSave = async () => {
     try {
-      await settingsApi.savePreferences({ reminderWindows, coachStyle });
+      await settingsApi.savePreferences({
+        reminderWindows,
+        coachStyle,
+        displayName: fullname,
+        organizationType,
+      });
+      await refreshProfile();
     } catch (err) {
       console.warn("Preferences save skipped", err);
     }
@@ -144,6 +153,7 @@ export function useSettingsForm() {
     contentMode,
     reminderWindows,
     coachStyle, setCoachStyle,
+    organizationType, setOrganizationType,
     goalSchedules,
     handleContentModeChange,
     toggleReminderWindow,

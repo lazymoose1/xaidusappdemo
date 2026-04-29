@@ -5,6 +5,7 @@ export interface IUser extends Document {
   email: string;
   role: string;
   display_name: string;
+  organization_type?: string;
   avatar_url?: string;
   cohort_code?: string;
   archetype?: string;
@@ -31,6 +32,7 @@ const userSchema = new Schema<IUser>(
     email: { type: String, required: true, unique: true },
     role: { type: String, default: 'teen' },
     display_name: { type: String, default: '' },
+    organization_type: { type: String, default: 'default_generic' },
     avatar_url: String,
     cohort_code: String,
     archetype: String,

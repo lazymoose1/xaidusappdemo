@@ -15,7 +15,7 @@ export async function registerProfile(
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { displayName, role: requestedRole, leaderInviteCode } = req.body || {};
+    const { displayName, role: requestedRole, leaderInviteCode, organizationType } = req.body || {};
 
     // Validate leader invite code — timing-safe comparison
     let role = requestedRole || 'teen';
@@ -34,6 +34,7 @@ export async function registerProfile(
     const result = await userService.registerProfile(req.user.authId, email, {
       displayName,
       role,
+      organizationType,
     });
 
     return res.status(201).json(result);
@@ -62,6 +63,7 @@ export async function getMe(req: Request, res: Response, next: NextFunction) {
         email,
         role: result.role,
         displayName: result.displayName,
+        organizationType: result.organizationType || 'default_generic',
         avatarUrl: '',
         interests: [],
         archetype: '',

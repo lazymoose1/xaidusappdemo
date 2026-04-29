@@ -2,6 +2,7 @@ export type ApiUser = {
   id: string;
   authId?: string;
   role: string;
+  organizationType?: string;
   displayName?: string;
   email?: string;
   avatarUrl?: string;
@@ -243,6 +244,8 @@ export type SaveSettingsInput = {
   preferredPostType?: string;
   reminderWindows?: string[];
   coachStyle?: string;
+  displayName?: string;
+  organizationType?: string;
 };
 
 // ─── Scout types ──────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +13,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +26,7 @@ import type { CreateLeaderSupportNoteInput, LeaderSupportProfile, TroopDashboard
 import { TroopSegments } from "@/components/scout/TroopSegments";
 import { useAuth } from "@/providers/AuthProvider";
 import { exportLeaderReport } from "@/lib/leader-report-export";
+import { getOrganizationTerms, type OrganizationTerms } from "@/lib/organization-language";
 import { ArrowLeft, Award, Shield, ChevronRight, TrendingUp, Users, Sparkles, Search, CalendarClock, AlertCircle, ClipboardList, Download, Gift, HeartHandshake, BookOpen } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
@@ -65,79 +65,69 @@ const SUPPORT_TAG_OPTIONS: NonNullable<CreateLeaderSupportNoteInput["tags"]> = [
   "resolved",
 ];
 
-const supportTagLabel: Record<string, string> = {
-  outreach_attempted: "Outreach attempted",
-  youth_responded: "Youth responded",
-  missed_appointment: "Missed appointment",
-  goal_planning_help: "Goal planning help",
-  accountability_support: "Accountability support",
-  needs_escalation: "Needs added support",
-  resolved: "Resolved",
-};
-
 type View = "dashboard" | "create_troop" | "add_scout" | "award_credential" | "scout_record" | "support_profile";
 type QueueFilter = "needs_attention" | "follow_up_due" | "stalled" | "all_ok" | "all";
 type QueueSort = "urgency" | "inactivity" | "follow_up" | "name";
 
-const LEADER_GUIDE_STEPS = [
+const buildLeaderGuideSteps = (terms: OrganizationTerms) => [
   {
     title: "What this workspace is for",
-    body: "This is a caseload support workspace for Resource Support Specialists. Start here when you need to see who needs support, what follow-up is due, and what the next practical action should be.",
-    takeaways: ["Support youth without adding admin burden.", "Use the portal to prioritize next steps, not to monitor private life."],
+    body: `This is a ${terms.workspaceEyebrow.toLowerCase()} for ${terms.leaderPlural}. Start here when you need to see who needs support, what follow-up is due, and what the next practical action should be.`,
+    takeaways: [`Support ${terms.youthPlural} without adding admin burden.`, "Use the portal to prioritize next steps, not to monitor private life."],
   },
   {
     title: "What you can do here",
     body: "You can review progress signals, document support work, assign follow-up, and recognize effort. The portal is designed for coaching and continuity, not surveillance.",
-    takeaways: ["Support notes and follow-up are core actions.", "Recognition matters just as much as intervention."],
+    takeaways: [`${terms.notesLabel} and follow-up are core actions.`, "Recognition matters just as much as intervention."],
   },
   {
-    title: "Who appears in your caseload",
-    body: "You’ll see youth connected to your program, group, or cohort. The main queue is built so you can scan many youth quickly before opening an individual support view.",
-    takeaways: ["Use the queue first.", "Open a youth view only when you need more context."],
+    title: `Who appears in your ${terms.queueCollectionLabel}`,
+    body: `You’ll see ${terms.youthPlural} connected to your program, group, or cohort. The main queue is built so you can scan many ${terms.youthPlural} quickly before opening an individual support view.`,
+    takeaways: ["Use the queue first.", `Open a ${terms.supportViewLabel.toLowerCase()} only when you need more context.`],
   },
   {
     title: "What data is shown",
-    body: "The portal highlights goal progress, check-in consistency, follow-up dates, support status, service hours, recognitions, and staff notes. These are the signals most useful for youth support work.",
+    body: `The portal highlights goal progress, check-in consistency, follow-up dates, support status, service hours, recognitions, and staff notes. These are the signals most useful for ${terms.youthSingular} support work.`,
     takeaways: ["You are seeing support signals, not a raw activity feed.", "The goal is fast context for follow-up."],
   },
   {
     title: "What is intentionally not shown",
-    body: "You will not see private reflections in full, browsing history, private messages, or hidden monitoring data. The portal stays within role-safe boundaries so youth dignity stays intact.",
+    body: `You will not see private reflections in full, browsing history, private messages, or hidden monitoring data. The portal stays within role-safe boundaries so ${terms.youthSingular} dignity stays intact.`,
     takeaways: ["This is not a forensic profile.", "Private content stays private unless product rules explicitly say otherwise."],
   },
   {
     title: "Start with Needs attention now",
-    body: "This is the main action queue. It surfaces youth who may need outreach, have missed check-ins, show stalled momentum, or already have follow-up waiting.",
+    body: `This is the main action queue. It surfaces ${terms.youthPlural} who may need outreach, have missed check-ins, show stalled momentum, or already have follow-up waiting.`,
     takeaways: ["If you only have a minute, start here.", "This section should tell you who needs support right now."],
   },
   {
     title: "Use filters to narrow your day",
-    body: "Use search, status filters, and sorting to move from a full caseload view to the exact youth who need action first. This is especially useful when you are triaging a busy day.",
+    body: `Use search, status filters, and sorting to move from a full ${terms.queueCollectionLabel} view to the exact ${terms.youthPlural} who need action first. This is especially useful when you are triaging a busy day.`,
     takeaways: ["Filter by urgency, follow-up due, or stalled progress.", "Sort when you need the clearest action order."],
   },
   {
     title: "Follow-ups due",
-    body: "This section shows youth who already have a next step or follow-up date connected to support notes. It helps you keep promises, close loops, and avoid losing track of outreach.",
+    body: `This section shows ${terms.youthPlural} who already have a next step or follow-up date connected to ${terms.notesLabel.toLowerCase()}. It helps you keep promises, close loops, and avoid losing track of outreach.`,
     takeaways: ["Use this to keep support work moving.", "Overdue follow-up usually deserves attention before new reporting."],
   },
   {
     title: "Recognition stays visible",
-    body: "Recognition is placed high on purpose. It helps you see whether youth are being acknowledged for progress, completions, service, and consistency, not only contacted when something slips.",
-    takeaways: ["Recognition is part of support, not an extra.", "A healthy caseload includes positive reinforcement."],
+    body: `Recognition is placed high on purpose. It helps you see whether ${terms.youthPlural} are being acknowledged for progress, completions, service, and consistency, not only contacted when something slips.`,
+    takeaways: ["Recognition is part of support, not an extra.", "A healthy support rhythm includes positive reinforcement."],
   },
   {
     title: "Use Give recognition",
-    body: "Use this action to document milestones, awards, and service hours. It strengthens the youth’s record and helps staff reinforce effort instead of only reacting to setbacks.",
-    takeaways: ["Use it when growth deserves to be named.", "Recognition builds the record youth can carry forward."],
+    body: `Use this action to document milestones, awards, and service hours. It strengthens the ${terms.youthSingular}'s record and helps staff reinforce effort instead of only reacting to setbacks.`,
+    takeaways: ["Use it when growth deserves to be named.", "Recognition builds the record a young person can carry forward."],
   },
   {
-    title: "Open the youth support view",
-    body: "Open an individual support view when you need a fuller picture. It brings together recent activity, active goals, notes, recognitions, support signals, and next follow-up in one place.",
+    title: `Open the ${terms.supportViewLabel.toLowerCase()}`,
+    body: `Open an individual ${terms.supportViewLabel.toLowerCase()} when you need a fuller picture. It brings together recent activity, active goals, notes, recognitions, support signals, and next follow-up in one place.`,
     takeaways: ["This is your one-person support page.", "It should answer what is going on and what to do next."],
   },
   {
-    title: "Keep support notes short",
-    body: "Support notes are meant to be practical, not essay-length. Use them to log outreach, record what happened, set a next step, and assign a follow-up date.",
+    title: `Keep ${terms.notesLabel.toLowerCase()} short`,
+    body: `${terms.notesLabel} are meant to be practical, not essay-length. Use them to log outreach, record what happened, set a next step, and assign a follow-up date.`,
     takeaways: ["Short notes are easier to maintain.", "A note is strongest when it ends with a clear next step."],
   },
   {
@@ -152,19 +142,37 @@ const LEADER_GUIDE_STEPS = [
   },
   {
     title: "Best day-to-day workflow",
-    body: "A strong rhythm is: review the queue, open a support view, log a note, set a follow-up, recognize progress when it is earned, and export a report only when you actually need to brief someone.",
+    body: `A strong rhythm is: review the queue, open a ${terms.supportViewLabel.toLowerCase()}, log a note, set a follow-up, recognize progress when it is earned, and export a report only when you actually need to brief someone.`,
     takeaways: ["Queue first.", "Follow-up second.", "Recognition and reporting support the work instead of replacing it."],
   },
 ] as const;
 
 export const LeaderDashboardPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const orgTerms = getOrganizationTerms(user?.organizationType);
+  const guideSteps = useMemo(() => buildLeaderGuideSteps(orgTerms), [orgTerms]);
+  const supportTagLabel = useMemo(
+    () => ({
+      outreach_attempted: "Outreach attempted",
+      youth_responded: `${orgTerms.youthSingular.charAt(0).toUpperCase()}${orgTerms.youthSingular.slice(1)} responded`,
+      missed_appointment: "Missed appointment",
+      goal_planning_help: "Goal planning help",
+      accountability_support: "Accountability support",
+      needs_escalation: "Needs added support",
+      resolved: "Resolved",
+    }),
+    [orgTerms],
+  );
   const [dashboard, setDashboard] = useState<TroopDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [resetLoading, setResetLoading] = useState(false);
   const [view, setView] = useState<View>("dashboard");
   const [showGuide, setShowGuide] = useState(false);
   const [guideStep, setGuideStep] = useState(0);
+  const guideContentRef = useRef<HTMLDivElement | null>(null);
+  const guideDesktopStepsRef = useRef<HTMLDivElement | null>(null);
+  const guideMobileStepsRef = useRef<HTMLDivElement | null>(null);
 
   // Troop creation form
   const [troopName, setTroopName] = useState("");
@@ -229,6 +237,21 @@ export const LeaderDashboardPage = () => {
       setShowGuide(true);
     }
   }, []);
+
+  useEffect(() => {
+    if (!showGuide) return;
+    guideContentRef.current?.scrollTo({ top: 0, behavior: "auto" });
+
+    const activeDesktopStep = guideDesktopStepsRef.current?.querySelector<HTMLButtonElement>(
+      `[data-guide-step="${guideStep}"]`,
+    );
+    activeDesktopStep?.scrollIntoView({ block: "nearest", inline: "nearest" });
+
+    const activeMobileStep = guideMobileStepsRef.current?.querySelector<HTMLButtonElement>(
+      `[data-guide-step="${guideStep}"]`,
+    );
+    activeMobileStep?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [guideStep, showGuide]);
 
   const allScouts: TroopSegmentEntry[] = dashboard
     ? [
@@ -442,7 +465,7 @@ export const LeaderDashboardPage = () => {
   };
 
   const openGuide = (step = 0) => {
-    setGuideStep(Math.max(0, Math.min(step, LEADER_GUIDE_STEPS.length - 1)));
+    setGuideStep(Math.max(0, Math.min(step, guideSteps.length - 1)));
     setShowGuide(true);
   };
 
@@ -454,7 +477,7 @@ export const LeaderDashboardPage = () => {
   };
 
   const advanceGuide = () => {
-    if (guideStep >= LEADER_GUIDE_STEPS.length - 1) {
+    if (guideStep >= guideSteps.length - 1) {
       closeGuide();
       return;
     }
@@ -539,7 +562,7 @@ export const LeaderDashboardPage = () => {
   }, [dashboard?.caseloadQueue]);
 
   const isServiceHoursMode = credentialType === ("service_hours");
-  const currentGuideStep = LEADER_GUIDE_STEPS[guideStep];
+  const currentGuideStep = guideSteps[guideStep];
 
   return (
     <div className="min-h-screen bg-background pb-16">
@@ -550,7 +573,7 @@ export const LeaderDashboardPage = () => {
               <ArrowLeft size={18} />
             </button>
           )}
-          <h1 className="font-serif text-lg sm:text-xl text-foreground truncate">xaidus — Leader</h1>
+          <h1 className="font-serif text-lg sm:text-xl text-foreground truncate">xaidus — {orgTerms.leaderTitle}</h1>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <button onClick={() => openGuide()} className="text-xs text-muted-foreground hover:text-foreground">
@@ -772,7 +795,7 @@ export const LeaderDashboardPage = () => {
             ) : supportProfile ? (
               <>
                 <div className="space-y-2">
-                  <p className="eyebrow">Youth support view</p>
+                  <p className="eyebrow">{orgTerms.supportViewLabel}</p>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
                       <h2 className="text-2xl font-semibold text-foreground break-words">{supportProfile.scout.nickname}</h2>
@@ -808,7 +831,7 @@ export const LeaderDashboardPage = () => {
                   <div className="space-y-4">
                     <Card className="border-0 shadow-sm">
                       <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-semibold text-foreground">Support snapshot</CardTitle>
+                        <CardTitle className="text-sm font-semibold text-foreground">{orgTerms.supportSummaryLabel}</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3">
                         <div className="flex flex-wrap gap-2">
@@ -956,13 +979,13 @@ export const LeaderDashboardPage = () => {
 
                     <Card className="border-0 shadow-sm">
                       <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-semibold text-foreground">Support note</CardTitle>
+                        <CardTitle className="text-sm font-semibold text-foreground">{orgTerms.noteLabel}</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3">
                         <Textarea
                           value={supportNote}
                           onChange={(e) => setSupportNote(e.target.value)}
-                          placeholder="Add a short support note"
+                          placeholder={`Add a short ${orgTerms.noteLabel.toLowerCase()}`}
                           className="min-h-[120px]"
                         />
 
@@ -1020,7 +1043,7 @@ export const LeaderDashboardPage = () => {
                         </div>
 
                         <Button className="w-full" onClick={saveSupportNote} disabled={savingSupportNote}>
-                          {savingSupportNote ? "Saving..." : "Save support note"}
+                          {savingSupportNote ? "Saving..." : `Save ${orgTerms.noteLabel.toLowerCase()}`}
                         </Button>
                       </CardContent>
                     </Card>
@@ -1051,7 +1074,7 @@ export const LeaderDashboardPage = () => {
                             </div>
                           ))
                         ) : (
-                          <p className="text-sm text-muted-foreground">No support notes logged yet.</p>
+                          <p className="text-sm text-muted-foreground">No {orgTerms.notesLabel.toLowerCase()} logged yet.</p>
                         )}
                       </CardContent>
                     </Card>
@@ -1132,10 +1155,10 @@ export const LeaderDashboardPage = () => {
               <div className="leader-geo-panel p-5">
               <div className="flex flex-col items-start gap-3 xl:flex-row xl:items-end xl:justify-between">
                 <div className="min-w-0">
-                  <p className="eyebrow">Caseload support workspace</p>
-                  <h2 className="text-2xl font-semibold text-foreground break-words mt-2">Who needs support right now?</h2>
+                  <p className="eyebrow">{orgTerms.workspaceEyebrow}</p>
+                  <h2 className="text-2xl font-semibold text-foreground break-words mt-2">{orgTerms.workspaceHeroQuestion}</h2>
                   <p className="text-sm text-muted-foreground mt-2 max-w-2xl">
-                    Use this space to notice stalled momentum, log follow-up, and keep youth moving without turning the work into surveillance.
+                    {orgTerms.workspaceHeroBody}
                   </p>
                   <button
                     type="button"
@@ -1151,7 +1174,7 @@ export const LeaderDashboardPage = () => {
                     Give recognition
                   </Button>
                   <Button className="w-full sm:w-auto" onClick={() => setView("add_scout")}>
-                    + Add youth
+                    + Add {orgTerms.youthSingular}
                   </Button>
                 </div>
               </div>
@@ -1162,7 +1185,7 @@ export const LeaderDashboardPage = () => {
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Search className="w-4 h-4" />
-                      <span>Search and filter caseload</span>
+                      <span>{orgTerms.queueSearchLabel}</span>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -1182,7 +1205,7 @@ export const LeaderDashboardPage = () => {
                     <Input
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search youth name"
+                      placeholder={orgTerms.searchPlaceholder}
                     />
                     <select
                       value={queueFilter}
@@ -1193,7 +1216,7 @@ export const LeaderDashboardPage = () => {
                       <option value="follow_up_due">Follow-up due</option>
                       <option value="stalled">Progress stalled</option>
                       <option value="all_ok">All okay</option>
-                      <option value="all">All youth</option>
+                      <option value="all">{orgTerms.allCollectionLabel}</option>
                     </select>
                     <select
                       value={queueSort}
@@ -1209,9 +1232,9 @@ export const LeaderDashboardPage = () => {
                 </div>
 
                 <div className="leader-geo-panel p-4">
-                  <p className="eyebrow">Caseload summary</p>
+                  <p className="eyebrow">{orgTerms.queueCollectionLabel === "caseload" ? "Caseload summary" : "Support summary"}</p>
                   <div className="mt-3 space-y-2 text-sm">
-                    <p className="text-foreground">{dashboard.caseloadSummary?.needsAttentionNow || 0} youth need attention today</p>
+                    <p className="text-foreground">{dashboard.caseloadSummary?.needsAttentionNow || 0} {orgTerms.youthPlural} need attention today</p>
                     <p className="text-foreground">{dashboard.caseloadSummary?.followUpsOverdue || 0} follow-ups are overdue</p>
                     <p className="text-foreground">{dashboard.caseloadSummary?.onTrackThisWeek || 0} are on track this week</p>
                     <p className="text-foreground">{dashboard.caseloadSummary?.stalledProgress || 0} may need a reset in progress</p>
@@ -1229,7 +1252,7 @@ export const LeaderDashboardPage = () => {
                       <p className="mt-2 text-lg font-semibold text-foreground">{dashboard.recognitionSnapshot?.rewardsIssuedThisWeek || 0}</p>
                     </div>
                     <div className="leader-geo-subcard rounded-xl border border-border px-3 py-3">
-                      <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Youth recognized</p>
+                      <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">{orgTerms.recognitionSubjectPlural}</p>
                       <p className="mt-2 text-lg font-semibold text-foreground">{dashboard.recognitionSnapshot?.youthRecognizedThisWeek || 0}</p>
                     </div>
                     <div className="leader-geo-subcard rounded-xl border border-border px-3 py-3">
@@ -1270,7 +1293,7 @@ export const LeaderDashboardPage = () => {
               <CardContent className="space-y-3">
                 {filteredQueue.length === 0 ? (
                   <div className="rounded-xl border border-border bg-muted/20 p-4 text-sm text-muted-foreground">
-                    No youth match this filter right now.
+                    No {orgTerms.youthPlural} match this filter right now.
                   </div>
                 ) : (
                   filteredQueue.map((item) => (
@@ -1318,7 +1341,7 @@ export const LeaderDashboardPage = () => {
                       </div>
                       {item.latestNoteSnippet && (
                         <p className="text-xs text-muted-foreground break-words">
-                          Latest support note: <span className="text-foreground">{item.latestNoteSnippet}</span>
+                          Latest {orgTerms.noteLabel.toLowerCase()}: <span className="text-foreground">{item.latestNoteSnippet}</span>
                         </p>
                       )}
                     </div>
@@ -1399,7 +1422,7 @@ export const LeaderDashboardPage = () => {
                       </div>
                     ))
                   ) : (
-                    <p className="text-sm text-muted-foreground">Support notes will show up here once follow-up is logged.</p>
+                    <p className="text-sm text-muted-foreground">{orgTerms.notesLabel} will show up here once follow-up is logged.</p>
                   )}
                 </CardContent>
               </Card>
@@ -1444,12 +1467,12 @@ export const LeaderDashboardPage = () => {
                       Support status mix
                     </CardTitle>
                     <p className="text-xs text-muted-foreground">
-                      See where the caseload is concentrated without opening every record.
+                      See where the {orgTerms.queueCollectionLabel} is concentrated without opening every record.
                     </p>
                   </CardHeader>
                   <CardContent>
                     <ChartContainer
-                      config={{ total: { label: "Youth", color: "hsl(var(--foreground))" } }}
+                      config={{ total: { label: orgTerms.youthPlural, color: "hsl(var(--foreground))" } }}
                       className="aspect-[16/9] w-full"
                     >
                       <BarChart data={caseloadStatusChartData}>
@@ -1472,7 +1495,7 @@ export const LeaderDashboardPage = () => {
                     <div className="min-w-0 space-y-1">
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <TrendingUp className="w-4 h-4 text-accent shrink-0" />
-                        <span>Caseload trend</span>
+                        <span>{orgTerms.queueCollectionLabel === "caseload" ? "Caseload trend" : "Support trend"}</span>
                       </div>
                       <h3 className="text-base font-semibold text-foreground break-words">
                         {dashboard.groupSnapshot.trendLabel}
@@ -1509,7 +1532,7 @@ export const LeaderDashboardPage = () => {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-accent" />
-                    Group themes
+                    {orgTerms.groupThemesLabel}
                   </CardTitle>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     Trend summaries only. Use these to guide support conversations, not to inspect private youth content.
@@ -1524,7 +1547,7 @@ export const LeaderDashboardPage = () => {
                         </span>
                       ))
                     ) : (
-                      <p className="text-xs text-muted-foreground">Themes will appear once youth start setting goals and checking in.</p>
+                      <p className="text-xs text-muted-foreground">Themes will appear once {orgTerms.youthPlural} start setting goals and checking in.</p>
                     )}
                   </div>
 
@@ -1532,14 +1555,14 @@ export const LeaderDashboardPage = () => {
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Users className="w-4 h-4" />
-                        <span>Cohort view</span>
+                        <span>{orgTerms.cohortViewLabel}</span>
                       </div>
                       {dashboard.themeSummary.cohorts.map((cohort) => (
                         <div key={cohort.cohortCode} className="rounded-xl border border-border bg-muted/20 px-3 py-3 space-y-2">
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-foreground break-words">{cohort.cohortCode}</p>
                             <div className="mt-2 flex flex-wrap gap-2">
-                              <span className="rounded-full border border-border bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground">{cohort.memberCount} youth</span>
+                              <span className="rounded-full border border-border bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground">{cohort.memberCount} {orgTerms.cohortCountLabel}</span>
                               <span className="rounded-full border border-border bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground">{cohort.activeScouts} active</span>
                               <span className="rounded-full border border-border bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground">{cohort.goalsCompletedThisWeek} completed</span>
                             </div>
@@ -1565,7 +1588,7 @@ export const LeaderDashboardPage = () => {
                     <span className="font-semibold shrink-0">{Math.round(dashboard.weeklyResetRate * 100)}%</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Close the week clearly so youth come back to one fresh goal and one next step.
+                    Close the week clearly so {orgTerms.youthPlural} come back to one fresh goal and one next step.
                   </p>
                   <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div
@@ -1597,41 +1620,115 @@ export const LeaderDashboardPage = () => {
       </div>
 
       <Dialog open={showGuide} onOpenChange={(open) => (!open ? closeGuide() : setShowGuide(true))}>
-        <DialogContent className="flex h-[calc(100dvh-1.5rem)] w-[calc(100vw-1.5rem)] max-w-3xl flex-col overflow-hidden p-0 sm:h-[calc(100dvh-2rem)] sm:w-full">
-          <DialogHeader className="border-b border-border/70 px-6 pb-4 pt-6">
+        <DialogContent className="flex h-[min(40rem,calc(100dvh-1rem))] w-[calc(100vw-1rem)] max-w-[72rem] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-background p-0 shadow-strong sm:h-[min(40rem,calc(100dvh-2rem))] sm:w-[calc(100vw-2rem)]">
+          <DialogHeader className="border-b border-border/70 px-5 pb-2 pt-4 sm:px-6 sm:pt-5">
             <div className="flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-muted-foreground">
               <BookOpen className="h-4 w-4" />
-              <span>Leader portal guide</span>
+              <span>Workspace guide</span>
             </div>
-            <DialogTitle className="text-2xl leading-tight tracking-[-0.03em] text-foreground">How this workspace works</DialogTitle>
-            <DialogDescription className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              A quick walkthrough of what this portal shows, what it does not show, and how to use it well in youth support work.
+            <DialogTitle className="text-[1.65rem] leading-tight tracking-[-0.03em] text-foreground sm:text-[1.85rem]">How this workspace works</DialogTitle>
+            <DialogDescription className="max-w-3xl text-sm leading-6 text-muted-foreground">
+              A quick walkthrough of what this portal shows, what it does not show, and how to use it well in {orgTerms.youthSingular} support work.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex min-h-0 flex-1 flex-col">
-            <div className="border-b border-border/70 bg-card px-5 py-4">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Step {guideStep + 1} of {LEADER_GUIDE_STEPS.length}</span>
-                <span>{Math.round(((guideStep + 1) / LEADER_GUIDE_STEPS.length) * 100)}%</span>
-              </div>
-              <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full bg-foreground transition-all"
-                  style={{ width: `${((guideStep + 1) / LEADER_GUIDE_STEPS.length) * 100}%` }}
-                />
-              </div>
-              <p className="mt-3 text-sm leading-6 text-foreground/82">
-                Click any step to jump around. The guide stays focused on one idea at a time.
-              </p>
+          <div className="border-b border-border/70 bg-card/60 px-5 py-2.5 sm:px-6">
+            <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground">
+              <span className="truncate">Step {guideStep + 1} of {guideSteps.length}</span>
+              <span className="shrink-0">{Math.round(((guideStep + 1) / guideSteps.length) * 100)}%</span>
             </div>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-foreground transition-all"
+                style={{ width: `${((guideStep + 1) / guideSteps.length) * 100}%` }}
+              />
+            </div>
+          </div>
 
-            <ScrollArea className="min-h-0 flex-1">
-              <div className="space-y-5 px-6 py-5">
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {LEADER_GUIDE_STEPS.map((step, index) => (
+          <div className="hidden min-h-0 flex-1 lg:grid lg:grid-cols-[11rem_minmax(0,1fr)]">
+              <div className="border-r border-border/70 bg-card/40">
+                <div className="border-b border-border/70 bg-card/70 px-3 py-3">
+                  <p className="text-sm font-medium text-foreground">Guide steps</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    Jump to any section. The content stays focused on one idea at a time.
+                  </p>
+                </div>
+                <div
+                  ref={guideDesktopStepsRef}
+                  className="h-full overflow-y-auto overscroll-contain px-3 py-3 [-webkit-overflow-scrolling:touch]"
+                >
+                  <div className="space-y-2">
+                  {guideSteps.map((step, index) => (
                     <button
                       key={step.title}
+                      data-guide-step={index}
+                      type="button"
+                      onClick={() => setGuideStep(index)}
+                      className={`w-full rounded-2xl border px-3 py-3 text-left transition-colors ${
+                        index === guideStep
+                          ? "border-foreground bg-foreground text-background shadow-sm"
+                          : "border-border bg-background text-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <p className="text-xs uppercase tracking-[0.14em] opacity-80">Step {index + 1}</p>
+                      <p className="mt-1 text-sm font-medium leading-5">{step.title}</p>
+                    </button>
+                  ))}
+                  </div>
+                </div>
+              </div>
+
+              <div
+                ref={guideContentRef}
+                className="min-h-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
+              >
+                <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col px-5 py-4 sm:px-6 sm:py-5">
+                  <div className="rounded-2xl border border-border/70 bg-background p-5 shadow-sm sm:p-6">
+                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Current step</p>
+                    <h3 className="mt-3 text-2xl font-semibold leading-tight tracking-[-0.03em] text-foreground sm:text-[2rem]">
+                      {currentGuideStep.title}
+                    </h3>
+                    <p className="mt-4 text-base leading-8 text-muted-foreground sm:text-lg">
+                      {currentGuideStep.body}
+                    </p>
+                  </div>
+
+                  <div className="mt-5 rounded-2xl border border-border/70 bg-card p-5 shadow-sm sm:p-6">
+                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">What to keep in mind</p>
+                    <div className="mt-4 space-y-3">
+                      {currentGuideStep.takeaways.map((takeaway) => (
+                        <div key={takeaway} className="flex items-start gap-3">
+                          <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-foreground/80" />
+                          <p className="text-sm leading-6 text-foreground/92 sm:text-base sm:leading-7">{takeaway}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-5 rounded-2xl border border-border/70 bg-background p-5 shadow-sm sm:p-6">
+                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Use it like this</p>
+                    <p className="mt-4 text-sm leading-7 text-muted-foreground sm:text-base">
+                      Move through the guide once to understand the structure, then reopen it later if you need a refresher on queues, notes, recognition, exports, or role boundaries.
+                    </p>
+                  </div>
+                </div>
+              </div>
+          </div>
+
+          <div className="flex min-h-0 flex-1 flex-col lg:hidden">
+            <div className="border-b border-border/70 px-5 py-3">
+              <p className="text-sm leading-6 text-foreground/82">
+                Tap any step below to jump around. The guide stays focused on one idea at a time.
+              </p>
+              <div
+                ref={guideMobileStepsRef}
+                className="mt-3 -mx-1 overflow-x-auto overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch]"
+              >
+                <div className="flex min-w-max gap-2 px-1">
+                  {guideSteps.map((step, index) => (
+                    <button
+                      key={step.title}
+                      data-guide-step={index}
                       type="button"
                       onClick={() => setGuideStep(index)}
                       className={`shrink-0 rounded-full border px-3 py-2 text-sm leading-none transition-colors ${
@@ -1644,53 +1741,59 @@ export const LeaderDashboardPage = () => {
                     </button>
                   ))}
                 </div>
+              </div>
+            </div>
 
-                <div className="mx-auto max-w-2xl space-y-5">
-                  <div className="rounded-2xl border border-border/70 bg-background p-5 shadow-sm">
-                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Current step</p>
-                    <h3 className="mt-3 text-2xl font-semibold leading-tight tracking-[-0.03em] text-foreground">
-                      {currentGuideStep.title}
-                    </h3>
-                    <p className="mt-3 text-base leading-7 text-muted-foreground">
-                      {currentGuideStep.body}
-                    </p>
-                  </div>
+            <div
+              ref={guideContentRef}
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
+            >
+              <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col px-5 py-4 sm:px-6 sm:py-5">
+                <div className="rounded-2xl border border-border/70 bg-background p-5 shadow-sm sm:p-6">
+                  <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Current step</p>
+                  <h3 className="mt-3 text-2xl font-semibold leading-tight tracking-[-0.03em] text-foreground sm:text-[2rem]">
+                    {currentGuideStep.title}
+                  </h3>
+                  <p className="mt-4 text-base leading-8 text-muted-foreground sm:text-lg">
+                    {currentGuideStep.body}
+                  </p>
+                </div>
 
-                  <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
-                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">What to keep in mind</p>
-                    <div className="mt-3 space-y-3">
-                      {currentGuideStep.takeaways.map((takeaway) => (
-                        <div key={takeaway} className="flex items-start gap-3">
-                          <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-foreground/80" />
-                          <p className="text-sm leading-6 text-foreground/92">{takeaway}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-border/70 bg-background p-5 shadow-sm">
-                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Use it like this</p>
-                    <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                      Move through the guide once to understand the structure, then reopen it later if you need a refresher on queues, notes, recognition, exports, or role boundaries.
-                    </p>
+                <div className="mt-5 rounded-2xl border border-border/70 bg-card p-5 shadow-sm sm:p-6">
+                  <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">What to keep in mind</p>
+                  <div className="mt-4 space-y-3">
+                    {currentGuideStep.takeaways.map((takeaway) => (
+                      <div key={takeaway} className="flex items-start gap-3">
+                        <div className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-foreground/80" />
+                        <p className="text-sm leading-6 text-foreground/92 sm:text-base sm:leading-7">{takeaway}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
+
+                <div className="mt-5 rounded-2xl border border-border/70 bg-background p-5 shadow-sm sm:p-6">
+                  <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Use it like this</p>
+                  <p className="mt-4 text-sm leading-7 text-muted-foreground sm:text-base">
+                    Move through the guide once to understand the structure, then reopen it later if you need a refresher on queues, notes, recognition, exports, or role boundaries.
+                  </p>
+                </div>
               </div>
-            </ScrollArea>
+            </div>
           </div>
 
-          <DialogFooter className="border-t border-border/70 px-6 py-4 sm:justify-between">
-            <Button variant="outline" onClick={closeGuide}>Close guide</Button>
-            <div className="flex flex-col gap-2 sm:flex-row">
+          <DialogFooter className="border-t border-border/70 bg-background px-5 py-4 sm:px-6 sm:justify-between">
+            <Button variant="outline" onClick={closeGuide} className="w-full sm:w-auto">Close guide</Button>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               <Button
                 variant="outline"
                 onClick={() => setGuideStep((current) => Math.max(0, current - 1))}
                 disabled={guideStep === 0}
+                className="w-full sm:w-auto"
               >
                 Previous
               </Button>
-              <Button onClick={advanceGuide}>
-                {guideStep === LEADER_GUIDE_STEPS.length - 1 ? "Finish guide" : "Next step"}
+              <Button onClick={advanceGuide} className="w-full sm:w-auto">
+                {guideStep === guideSteps.length - 1 ? "Finish guide" : "Next step"}
               </Button>
             </div>
           </DialogFooter>

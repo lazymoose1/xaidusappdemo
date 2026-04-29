@@ -4,6 +4,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { Compass, Eye, EyeOff, Sparkles, Target } from "lucide-react";
@@ -12,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { goalsApi } from "@/api/endpoints";
 import BrandWordmark from "@/components/BrandWordmark";
 import AuthLoadingOverlay from "@/components/auth/AuthLoadingOverlay";
+import { DEFAULT_ORGANIZATION_TYPE, ORGANIZATION_TYPE_OPTIONS } from "@/lib/organization-language";
 
 const newUserSteps = [
   {
@@ -40,6 +42,7 @@ const AuthPage = () => {
   const [loading, setLoading] = useState(false);
   const [showQuickGoal, setShowQuickGoal] = useState(false);
   const [creatingGoal, setCreatingGoal] = useState(false);
+  const [organizationType, setOrganizationType] = useState(DEFAULT_ORGANIZATION_TYPE);
   const [customGoal, setCustomGoal] = useState("");
   const goalTemplates = [
     "Turn in missing work",
@@ -121,7 +124,7 @@ const AuthPage = () => {
     try {
       const { error } = isLogin 
         ? await signIn(email, password)
-        : await signUp(email, password);
+        : await signUp(email, password, undefined, organizationType);
 
       if (error) {
         if (error.message.includes('already registered')) {
@@ -203,15 +206,15 @@ const AuthPage = () => {
                     key={title}
                     className="rounded-[1.4rem] border border-white/10 bg-background/75 p-4"
                   >
-                    <div className="flex flex-col gap-3 xl:flex-row xl:items-start">
-                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.1rem] bg-muted/75 xl:h-16 xl:w-16">
+                    <div className="flex items-start gap-4">
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.1rem] bg-muted/75">
                         <Icon className="h-7 w-7 text-foreground/90" />
                       </div>
-                      <div className="min-w-0 space-y-1">
-                        <p className="text-xl font-semibold leading-tight text-foreground">
+                      <div className="min-w-0 flex-1 space-y-1 text-left">
+                        <p className="max-w-none text-xl font-semibold leading-tight text-foreground sm:text-[1.7rem]">
                           {title}
                         </p>
-                        <p className="text-base leading-7 text-muted-foreground">
+                        <p className="max-w-none text-base leading-7 text-muted-foreground sm:text-lg">
                           {description}
                         </p>
                       </div>
@@ -368,6 +371,26 @@ const AuthPage = () => {
                 </Button>
               </div>
             </div>
+            {!isLogin && (
+              <div className="space-y-2">
+                <Label>Organization type</Label>
+                <Select value={organizationType} onValueChange={setOrganizationType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose organization type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ORGANIZATION_TYPE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  This keeps partner language natural without changing your experience or privacy boundaries.
+                </p>
+              </div>
+            )}
             {!isLogin && (
               <div className="space-y-2 rounded-lg border border-border/60 bg-muted/30 p-3">
                 <label className="flex items-start gap-2 text-sm text-muted-foreground">

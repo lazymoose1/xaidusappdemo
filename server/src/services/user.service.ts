@@ -27,6 +27,7 @@ export async function getProfile(userId: string) {
     email: user.email, // Only returned for own profile via /me
     role: user.role,
     displayName: user.display_name,
+    organizationType: user.organization_type || 'default_generic',
     avatarUrl: user.avatar_url,
     interests: user.interests || [],
     archetype: user.archetype || '',
@@ -43,6 +44,7 @@ export async function registerProfile(
   data: {
     displayName?: string;
     role?: string;
+    organizationType?: string;
   },
 ) {
   const existing = await userRepo.findByAuthId(authId);
@@ -50,18 +52,27 @@ export async function registerProfile(
     // If the user was JIT-provisioned as 'teen' but an explicit role is now provided,
     // update to the correct role so parent/leader signups aren't silently demoted.
     const requestedRole = data.role || 'teen';
+    const update: Record<string, any> = {};
     if (existing.role === 'teen' && requestedRole !== 'teen') {
-      const updated = await userRepo.update(existing.id, { role: requestedRole });
+      update.role = requestedRole;
+    }
+    if (typeof data.organizationType === 'string') {
+      update.organization_type = data.organizationType;
+    }
+    if (Object.keys(update).length > 0) {
+      const updated = await userRepo.update(existing.id, update);
       return {
         id: updated.id,
         role: updated.role,
         displayName: updated.display_name,
+        organizationType: updated.organization_type || 'default_generic',
       };
     }
     return {
       id: existing.id,
       role: existing.role,
       displayName: existing.display_name,
+      organizationType: existing.organization_type || 'default_generic',
     };
   }
 
@@ -70,12 +81,14 @@ export async function registerProfile(
     email,
     role: data.role || 'teen',
     display_name: data.displayName || '',
+    organization_type: data.organizationType || 'default_generic',
   });
 
   return {
     id: user.id,
     role: user.role,
     displayName: user.display_name,
+    organizationType: user.organization_type || 'default_generic',
   };
 }
 
@@ -118,6 +131,8 @@ export async function updatePreferences(
   data: {
     reminderWindows?: string[];
     coachStyle?: string;
+    displayName?: string;
+    organizationType?: string;
     parentContact?: any;
     consentFlags?: any;
   },
@@ -126,6 +141,8 @@ export async function updatePreferences(
   if (Array.isArray(data.reminderWindows))
     update.reminder_windows = data.reminderWindows;
   if (typeof data.coachStyle === 'string') update.coach_style = data.coachStyle;
+  if (typeof data.displayName === 'string') update.display_name = data.displayName.trim();
+  if (typeof data.organizationType === 'string') update.organization_type = data.organizationType;
   if (data.parentContact && typeof data.parentContact === 'object')
     update.parent_contact = data.parentContact;
   if (data.consentFlags && typeof data.consentFlags === 'object')
@@ -135,6 +152,8 @@ export async function updatePreferences(
 
   const updated = await userRepo.update(userId, update);
   return {
+    displayName: updated.display_name || '',
+    organizationType: updated.organization_type || 'default_generic',
     reminderWindows: updated.reminder_windows || [],
     coachStyle: updated.coach_style || '',
     parentContact: updated.parent_contact || {},

@@ -4,10 +4,12 @@ import { ArrowLeft, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ThemeModeRow from "@/components/ThemeModeRow";
 import { useAuth } from "@/providers/AuthProvider";
-import { authApi } from "@/api/endpoints";
+import { authApi, settingsApi } from "@/api/endpoints";
 import { useToast } from "@/hooks/use-toast";
+import { ORGANIZATION_TYPE_OPTIONS, getOrganizationTerms, normalizeOrganizationType } from "@/lib/organization-language";
 
 const LeaderSettingsPage = () => {
   const navigate = useNavigate();
@@ -15,6 +17,7 @@ const LeaderSettingsPage = () => {
   const { user, signOut, refreshProfile } = useAuth();
 
   const [displayName, setDisplayName] = useState(user?.displayName || "");
+  const [organizationType, setOrganizationType] = useState(normalizeOrganizationType(user?.organizationType));
 
   // Role-change state (OTP flow — also lets existing leaders fix a bad role assignment)
   const [pendingRole, setPendingRole] = useState<string>(user?.role || "scout_leader");
@@ -27,10 +30,19 @@ const LeaderSettingsPage = () => {
 
   useEffect(() => {
     if (user) setDisplayName(user.displayName || "");
+    if (user) setOrganizationType(normalizeOrganizationType(user.organizationType));
   }, [user]);
 
-  const handleSave = () => {
-    toast({ title: "Saved", description: "Display name updated." });
+  const terms = getOrganizationTerms(organizationType);
+
+  const handleSave = async () => {
+    try {
+      await settingsApi.savePreferences({ displayName, organizationType });
+      await refreshProfile();
+      toast({ title: "Saved", description: "Settings updated." });
+    } catch (error) {
+      toast({ title: "Couldn't save settings", description: error instanceof Error ? error.message : "Try again.", variant: "destructive" });
+    }
   };
 
   const handleSignOut = async () => {
@@ -108,7 +120,7 @@ const LeaderSettingsPage = () => {
             <User className="w-10 h-10 text-muted-foreground" />
           </div>
           <p className="text-sm text-muted-foreground">
-            Role: <span className="font-medium text-foreground">Leader</span>
+            Role: <span className="font-medium text-foreground">{terms.leaderTitle}</span>
           </p>
           {user?.email && (
             <p className="text-sm text-muted-foreground">{user.email}</p>
@@ -128,11 +140,33 @@ const LeaderSettingsPage = () => {
           </Button>
         </div>
 
+        <div className="space-y-3 pb-6 border-b border-border">
+          <h3 className="font-serif text-lg text-foreground">Organization type</h3>
+          <Select value={organizationType} onValueChange={(value) => setOrganizationType(normalizeOrganizationType(value))}>
+            <SelectTrigger>
+              <SelectValue placeholder="Choose organization type" />
+            </SelectTrigger>
+            <SelectContent>
+              {ORGANIZATION_TYPE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            This changes partner-facing language across the workspace without changing product behavior.
+          </p>
+          <Button onClick={handleSave} className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+            Save preferences
+          </Button>
+        </div>
+
         {/* Role change */}
         <div className="space-y-4 pb-6 border-b border-border">
           <h3 className="font-serif text-lg text-foreground">Change role</h3>
           <p className="text-sm text-muted-foreground">
-            Current role: <span className="font-medium text-foreground">Leader</span>.
+            Current role: <span className="font-medium text-foreground">{terms.leaderTitle}</span>.
             Use this to switch roles or fix an incorrect role assignment.
           </p>
           <div className="flex gap-2 flex-wrap">
@@ -145,7 +179,7 @@ const LeaderSettingsPage = () => {
                 onClick={() => { setPendingRole(r); setRoleCode(""); setRoleError(null); setCodeSent(false); }}
                 disabled={r === user?.role}
               >
-                {r === "scout_leader" ? "Leader" : r.charAt(0).toUpperCase() + r.slice(1)}
+                {r === "scout_leader" ? terms.leaderTitle : r.charAt(0).toUpperCase() + r.slice(1)}
               </Button>
             ))}
           </div>
@@ -183,7 +217,7 @@ const LeaderSettingsPage = () => {
                   )}
                   {roleError && <p className="text-xs text-destructive">{roleError}</p>}
                   <Button className="w-full" onClick={handleApplyRoleChange} disabled={isApplyingRole}>
-                    {isApplyingRole ? "Applying..." : `Switch to ${pendingRole === "scout_leader" ? "Leader" : pendingRole}`}
+                    {isApplyingRole ? "Applying..." : `Switch to ${pendingRole === "scout_leader" ? terms.leaderTitle : pendingRole}`}
                   </Button>
                   <button
                     className="text-xs text-muted-foreground hover:underline w-full text-center"

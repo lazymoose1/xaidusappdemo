@@ -2,6 +2,7 @@ import { Bell, Compass, Home, LayoutGrid, MessageSquare, Search, Settings, Users
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/providers/AuthProvider";
 import { useMemo, useState } from "react";
+import { getOrganizationTerms } from "@/lib/organization-language";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +16,7 @@ const BottomNav = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const role = user?.role || 'teen';
+  const orgTerms = getOrganizationTerms(user?.organizationType);
   const [moreOpen, setMoreOpen] = useState(false);
 
   const navItems = useMemo(() => {
@@ -61,14 +63,14 @@ const BottomNav = () => {
 
     if (role === "scout_leader") {
       return [
-        { path: "/leader", label: "Caseload workspace", icon: LayoutGrid, description: "Your main support queue, follow-ups, and recognition tools." },
-        { path: "/settings/leader", label: "Leader settings", icon: Settings, description: "Account, role, theme, and sign out." },
+        { path: "/leader", label: orgTerms.workspaceNavLabel, icon: LayoutGrid, description: `Your main ${orgTerms.queueCollectionLabel}, follow-ups, and recognition tools.` },
+        { path: "/settings/leader", label: `${orgTerms.leaderTitle} settings`, icon: Settings, description: "Account, organization language, theme, and sign out." },
         ...base,
       ];
     }
 
     return base;
-  }, [role]);
+  }, [role, orgTerms]);
 
   return (
     <>

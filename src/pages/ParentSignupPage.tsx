@@ -4,10 +4,12 @@ import { useAuth } from "@/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import BrandWordmark from "@/components/BrandWordmark";
 import { HeartHandshake, ShieldCheck, Sparkles } from "lucide-react";
+import { DEFAULT_ORGANIZATION_TYPE, ORGANIZATION_TYPE_OPTIONS } from "@/lib/organization-language";
 
 const parentExpectationCards = [
   {
@@ -38,6 +40,7 @@ const ParentSignupPage = () => {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [childName, setChildName] = useState("");
+  const [organizationType, setOrganizationType] = useState(DEFAULT_ORGANIZATION_TYPE);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -60,7 +63,7 @@ const ParentSignupPage = () => {
     }
 
     setLoading(true);
-    const { error } = await signUpParent(email, password, displayName, childName);
+    const { error } = await signUpParent(email, password, displayName, childName, organizationType);
     setLoading(false);
 
     if (error) {
@@ -172,6 +175,22 @@ const ParentSignupPage = () => {
                   onChange={(e) => setChildName(e.target.value)}
                   autoComplete="off"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Organization type</Label>
+                <Select value={organizationType} onValueChange={setOrganizationType}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose organization type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ORGANIZATION_TYPE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <Button type="submit" className="w-full h-11" disabled={loading}>

@@ -17,9 +17,9 @@ interface AuthContextType {
   loading: boolean;
   profileStatus: ProfileStatus;
   retryProfile: () => void;
-  signUp: (email: string, password: string, displayName?: string) => Promise<{ error: Error | null }>;
-  signUpParent: (email: string, password: string, displayName?: string, childName?: string) => Promise<{ error: Error | null }>;
-  signUpLeader: (email: string, password: string, displayName?: string, leaderInviteCode?: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, displayName?: string, organizationType?: string) => Promise<{ error: Error | null }>;
+  signUpParent: (email: string, password: string, displayName?: string, childName?: string, organizationType?: string) => Promise<{ error: Error | null }>;
+  signUpLeader: (email: string, password: string, displayName?: string, leaderInviteCode?: string, organizationType?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   scoutSignIn: (troopCode: string, nickname: string, pin: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -31,6 +31,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const createDemoUser = (role: string = 'teen', displayName?: string): ApiUser => ({
   id: `${role}-demo-user`,
   role,
+  organizationType: 'default_generic',
   displayName: displayName || 'Demo User',
   archetype: normalizeArchetype(DEFAULT_ARCHETYPE),
   interests: ['learning', 'creativity'],
@@ -150,7 +151,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     fetchProfile();
   }, [fetchProfile]);
 
-  const signUp = async (email: string, password: string, displayName?: string): Promise<{ error: Error | null }> => {
+  const signUp = async (email: string, password: string, displayName?: string, organizationType?: string): Promise<{ error: Error | null }> => {
     if (DEMO_MODE) {
       setUser(createDemoUser('teen', displayName));
       setProfileStatus('loaded');
@@ -159,7 +160,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { error } = await supabase.auth.signUp({ email, password });
     if (error) return { error };
     try {
-      const profile = await authApi.registerProfile({ displayName, role: 'teen' });
+      const profile = await authApi.registerProfile({ displayName, role: 'teen', organizationType });
       setUser({ ...profile, archetype: normalizeArchetype(profile?.archetype) });
       setProfileStatus('loaded');
     } catch (err) {
@@ -168,7 +169,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return { error: null };
   };
 
-  const signUpParent = async (email: string, password: string, displayName?: string, childName?: string): Promise<{ error: Error | null }> => {
+  const signUpParent = async (email: string, password: string, displayName?: string, childName?: string, organizationType?: string): Promise<{ error: Error | null }> => {
     if (DEMO_MODE) {
       setUser(createDemoUser('parent', displayName));
       setProfileStatus('loaded');
@@ -178,7 +179,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { error } = await supabase.auth.signUp({ email, password });
     if (error) return { error };
     try {
-      const profile = await authApi.registerProfile({ displayName, role: 'parent', childName });
+      const profile = await authApi.registerProfile({ displayName, role: 'parent', childName, organizationType });
       setUser({ ...profile, archetype: normalizeArchetype(profile?.archetype) });
       setProfileStatus('loaded');
     } catch (err) {
@@ -187,12 +188,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return { error: null };
   };
 
-  const signUpLeader = async (email: string, password: string, displayName?: string, leaderInviteCode?: string): Promise<{ error: Error | null }> => {
+  const signUpLeader = async (email: string, password: string, displayName?: string, leaderInviteCode?: string, organizationType?: string): Promise<{ error: Error | null }> => {
     localStorage.removeItem(SCOUT_TOKEN_KEY);
     const { error } = await supabase.auth.signUp({ email, password });
     if (error) return { error };
     try {
-      const profile = await authApi.registerProfile({ displayName, role: 'scout_leader', leaderInviteCode });
+      const profile = await authApi.registerProfile({ displayName, role: 'scout_leader', leaderInviteCode, organizationType });
       setUser({ ...profile, archetype: normalizeArchetype(profile?.archetype) });
       setProfileStatus('loaded');
     } catch (err) {
