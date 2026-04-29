@@ -30,7 +30,6 @@ const troopSchema = new Schema<ITroop>(
   },
 );
 
-troopSchema.index({ troop_code: 1 });
 troopSchema.index({ leader_id: 1 });
 
 export const Troop = mongoose.model<ITroop>('Troop', troopSchema);

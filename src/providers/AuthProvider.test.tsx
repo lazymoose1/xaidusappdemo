@@ -29,8 +29,12 @@ vi.mock('@/lib/archetypes', () => ({
 }));
 
 const mockGetSession = vi.fn().mockResolvedValue({ data: { session: null } });
-const mockOnAuthStateChange = vi.fn().mockReturnValue({
-  data: { subscription: { unsubscribe: vi.fn() } },
+let authStateChangeHandler: ((event: string, session: any) => void) | null = null;
+const mockOnAuthStateChange = vi.fn().mockImplementation((handler: typeof authStateChangeHandler) => {
+  authStateChangeHandler = handler;
+  return {
+    data: { subscription: { unsubscribe: vi.fn() } },
+  };
 });
 const mockSignOut = vi.fn().mockResolvedValue({});
 
@@ -49,7 +53,12 @@ vi.mock('@/integrations/supabase/client', () => ({
 describe('AuthProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authStateChangeHandler = null;
     mockGetSession.mockResolvedValue({ data: { session: null } });
+    mockSignOut.mockImplementation(async () => {
+      authStateChangeHandler?.('SIGNED_OUT', null);
+      return {};
+    });
   });
 
   afterEach(() => {
@@ -172,6 +181,7 @@ describe('AuthProvider', () => {
       await waitFor(() => {
         expect(screen.getByTestId('user').textContent).toBe('null');
       });
+      expect(mockSignOut).toHaveBeenCalled();
     });
   });
 

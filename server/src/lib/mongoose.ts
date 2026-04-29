@@ -66,3 +66,7 @@ export async function connectDB(): Promise<void> {
     logger.warn('MongoDB disconnected');
   });
 }
+
+export function isDBConnected() {
+  return isConnected;
+}

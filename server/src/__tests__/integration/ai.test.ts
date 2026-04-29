@@ -69,7 +69,9 @@ describe('AI routes', () => {
         .post('/api/ai/tiny/advice')
         .send({ interests: ['coding'] });
       expect(res.status).toBe(200);
-      expect(res.body).toHaveProperty('goals');
+      expect(res.body).toHaveProperty('ok', true);
+      expect(res.body).toHaveProperty('suggestion');
+      expect(res.body).toHaveProperty('nextStep');
     });
   });
 

@@ -1,5 +1,5 @@
 import { env } from './config/env';
-import { connectDB } from './lib/mongoose';
+import { connectDB, isDBConnected } from './lib/mongoose';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -68,15 +68,23 @@ app.use(
 app.use(express.json({ limit: '1mb' }));
 app.use(generalLimiter);
 
-app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+app.get('/health', (_req, res) => {
+  if (isDBConnected()) {
+    return res.json({ status: 'ok', db: 'connected' });
+  }
+
+  return res.status(503).json({ status: 'starting', db: 'disconnected' });
+});
 app.use('/api', apiRouter);
 app.use(errorHandler);
 
 if (process.env.VITEST !== 'true') {
-  connectDB().then(() => {
-    app.listen(env.PORT, () => {
-      logger.info({ port: env.PORT }, 'DUS API running');
-    });
+  app.listen(env.PORT, () => {
+    logger.info({ port: env.PORT }, 'DUS API running');
+  });
+
+  connectDB().catch((error) => {
+    logger.error({ error }, 'MongoDB failed to connect during startup');
   });
 }
 

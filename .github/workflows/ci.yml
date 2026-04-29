@@ -1,6 +1,8 @@
 name: CI
 
 on:
+  push:
+    branches: [main, staging]
   pull_request:
     branches: [main, staging]
 
@@ -13,6 +15,7 @@ jobs:
         with:
           node-version: 20
       - run: cd server && npm ci
+      - run: cd server && npm run build
       - run: cd server && npm test
 
   frontend:
@@ -22,5 +25,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: rm -rf node_modules && npm install
+      - run: npm ci
+      - run: npm test
       - run: npm run build

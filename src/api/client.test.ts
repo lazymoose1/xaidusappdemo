@@ -69,7 +69,7 @@ describe('apiFetch', () => {
       await apiFetch('/api/goals');
 
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        'http://localhost:4000/api/goals',
+        'http://localhost:3001/api/goals',
         expect.objectContaining({
           headers: expect.objectContaining({
             'Content-Type': 'application/json',
@@ -90,7 +90,7 @@ describe('apiFetch', () => {
       await apiFetch('/api/goals');
 
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        'http://localhost:4000/api/goals',
+        'http://localhost:3001/api/goals',
         expect.objectContaining({
           headers: expect.objectContaining({
             Authorization: 'Bearer test-jwt-token',
@@ -118,7 +118,7 @@ describe('apiFetch', () => {
       await apiFetch('/api/auth/me');
 
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        'http://localhost:4000/api/auth/me',
+        'http://localhost:3001/api/auth/me',
         expect.objectContaining({
           headers: expect.objectContaining({
             Authorization: 'Bearer live-jwt-token',
@@ -183,7 +183,7 @@ describe('apiFetch', () => {
       await apiFetch('/api/goals', { method: 'POST', body: '{"title":"test"}' });
 
       expect(globalThis.fetch).toHaveBeenCalledWith(
-        'http://localhost:4000/api/goals',
+        'http://localhost:3001/api/goals',
         expect.objectContaining({
           method: 'POST',
           body: '{"title":"test"}',
