@@ -206,7 +206,7 @@ const AuthPage = () => {
                     key={title}
                     className="rounded-[1.4rem] border border-white/10 bg-background/75 p-4"
                   >
-                    <div className="flex items-start gap-4">
+                    <div className="flex flex-col gap-4 text-left md:flex-row md:items-start">
                       <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.1rem] bg-muted/75">
                         <Icon className="h-7 w-7 text-foreground/90" />
                       </div>
