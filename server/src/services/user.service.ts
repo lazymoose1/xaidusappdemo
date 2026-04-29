@@ -76,6 +76,35 @@ export async function registerProfile(
     };
   }
 
+  // Recover gracefully when the Supabase auth user exists but the Mongo profile
+  // is still tied to an older auth_id for the same email address.
+  const existingByEmail = email ? await userRepo.findByEmail(email) : null;
+  if (existingByEmail) {
+    const requestedRole = data.role || 'teen';
+    const update: Record<string, any> = {
+      auth_id: authId,
+      email,
+    };
+
+    if (!existingByEmail.display_name && data.displayName) {
+      update.display_name = data.displayName;
+    }
+    if (existingByEmail.role === 'teen' && requestedRole !== 'teen') {
+      update.role = requestedRole;
+    }
+    if (typeof data.organizationType === 'string') {
+      update.organization_type = data.organizationType;
+    }
+
+    const updated = await userRepo.update(existingByEmail.id, update);
+    return {
+      id: updated.id,
+      role: updated.role,
+      displayName: updated.display_name,
+      organizationType: updated.organization_type || 'default_generic',
+    };
+  }
+
   const user = await userRepo.create({
     auth_id: authId,
     email,

@@ -11,6 +11,18 @@ import { logger } from './lib/logger';
 
 const app = express();
 
+const isAllowedDevOrigin = (origin: string) => {
+  try {
+    const url = new URL(origin);
+    return (
+      ['localhost', '127.0.0.1'].includes(url.hostname) &&
+      ['http:', 'https:'].includes(url.protocol)
+    );
+  } catch {
+    return false;
+  }
+};
+
 app.set('trust proxy', 1);
 
 // Attach unique request ID to every request
@@ -32,10 +44,24 @@ if (env.NODE_ENV === 'production') {
 }
 app.use(
   cors({
-    origin:
-      env.NODE_ENV === 'production'
-        ? env.FRONTEND_ORIGIN
-        : [env.FRONTEND_ORIGIN, 'http://localhost:5173', 'http://localhost:3000', 'http://localhost:8080'],
+    origin(origin, callback) {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      if (env.NODE_ENV === 'production') {
+        callback(null, origin === env.FRONTEND_ORIGIN);
+        return;
+      }
+
+      if (origin === env.FRONTEND_ORIGIN || isAllowedDevOrigin(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
     credentials: true,
   }),
 );
