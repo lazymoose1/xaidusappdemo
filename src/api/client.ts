@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001';
 
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 
