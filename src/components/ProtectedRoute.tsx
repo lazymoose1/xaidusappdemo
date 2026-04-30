@@ -8,16 +8,18 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { user, loading } = useAuth();
+  const { user, session, loading, profileStatus } = useAuth();
   const navigate = useNavigate();
+  const isResolvingProfile =
+    Boolean(session) && !user && (profileStatus === 'idle' || profileStatus === 'loading');
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!loading && !isResolvingProfile && !user) {
       navigate('/auth');
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, isResolvingProfile, navigate]);
 
-  if (loading) {
+  if (loading || isResolvingProfile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
         <div className="flex flex-col items-center gap-6">

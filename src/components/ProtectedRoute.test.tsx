@@ -25,7 +25,12 @@ describe('ProtectedRoute', () => {
   });
 
   it('shows loading spinner when loading is true', () => {
-    mockUseAuth.mockReturnValue({ user: null, loading: true });
+    mockUseAuth.mockReturnValue({
+      user: null,
+      session: null,
+      loading: true,
+      profileStatus: 'idle',
+    });
 
     render(
       <MemoryRouter>
@@ -40,7 +45,12 @@ describe('ProtectedRoute', () => {
   });
 
   it('navigates to /auth when user is null and loading is false', async () => {
-    mockUseAuth.mockReturnValue({ user: null, loading: false });
+    mockUseAuth.mockReturnValue({
+      user: null,
+      session: null,
+      loading: false,
+      profileStatus: 'idle',
+    });
 
     render(
       <MemoryRouter>
@@ -59,7 +69,9 @@ describe('ProtectedRoute', () => {
   it('renders children when user exists', () => {
     mockUseAuth.mockReturnValue({
       user: { id: 'user-1', role: 'teen', displayName: 'Test' },
+      session: { access_token: 'jwt' },
       loading: false,
+      profileStatus: 'loaded',
     });
 
     render(
@@ -75,7 +87,12 @@ describe('ProtectedRoute', () => {
   });
 
   it('does not navigate while still loading', () => {
-    mockUseAuth.mockReturnValue({ user: null, loading: true });
+    mockUseAuth.mockReturnValue({
+      user: null,
+      session: null,
+      loading: true,
+      profileStatus: 'idle',
+    });
 
     render(
       <MemoryRouter>
@@ -86,5 +103,26 @@ describe('ProtectedRoute', () => {
     );
 
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('waits for profile resolution when session exists but user is not loaded yet', () => {
+    mockUseAuth.mockReturnValue({
+      user: null,
+      session: { access_token: 'jwt' },
+      loading: false,
+      profileStatus: 'loading',
+    });
+
+    render(
+      <MemoryRouter>
+        <ProtectedRoute>
+          <div>Protected Content</div>
+        </ProtectedRoute>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('Loading your Xaidus space...')).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(screen.queryByText('Protected Content')).not.toBeInTheDocument();
   });
 });

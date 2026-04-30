@@ -57,7 +57,7 @@ const AuthPage = () => {
   const [troopCode, setTroopCode] = useState('');
   const [scoutNickname, setScoutNickname] = useState('');
   const [scoutPin, setScoutPin] = useState('');
-  const { signUp, signIn, scoutSignIn } = useAuth();
+  const { signUp, signIn, scoutSignIn, user } = useAuth();
   const navigate = useNavigate();
 
   const authLoadingTitle = authMode === "scout"
@@ -79,6 +79,12 @@ const AuthPage = () => {
   useEffect(() => {
     document.title = "Xaidus | Sign in";
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, navigate]);
 
   const validateEmail = (email: string) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -148,8 +154,9 @@ const AuthPage = () => {
         description: isLogin ? "You've successfully logged in." : "You can now start using Xaidus.",
       });
 
-      // For signups, go to onboarding wizard; logins go home
-      navigate(isLogin ? "/" : "/onboarding");
+      if (!isLogin) {
+        navigate("/onboarding", { replace: true });
+      }
     } catch (error) {
       toast({
         title: "Error",
