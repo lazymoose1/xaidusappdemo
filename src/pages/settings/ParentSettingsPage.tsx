@@ -9,7 +9,7 @@ import ThemeModeRow from "@/components/ThemeModeRow";
 import { useAuth } from "@/providers/AuthProvider";
 import { authApi, settingsApi } from "@/api/endpoints";
 import { useToast } from "@/hooks/use-toast";
-import { ORGANIZATION_TYPE_OPTIONS, normalizeOrganizationType } from "@/lib/organization-language";
+import { ORGANIZATION_TYPE_OPTIONS, getOrganizationTerms, normalizeOrganizationType } from "@/lib/organization-language";
 
 const ParentSettingsPage = () => {
   const navigate = useNavigate();
@@ -32,6 +32,8 @@ const ParentSettingsPage = () => {
     if (user) setDisplayName(user.displayName || "");
     if (user) setOrganizationType(normalizeOrganizationType(user.organizationType));
   }, [user]);
+
+  const terms = getOrganizationTerms(organizationType);
 
   const handleSave = async () => {
     try {
@@ -73,7 +75,7 @@ const ParentSettingsPage = () => {
       return;
     }
     if (pendingRole === "scout_leader" && !leaderInviteCode.trim()) {
-      setRoleError("Leader invite code is required.");
+      setRoleError(`${terms.leaderTitle} invite code is required.`);
       return;
     }
     setIsApplyingRole(true);
@@ -87,7 +89,7 @@ const ParentSettingsPage = () => {
       setRoleCode("");
       setLeaderInviteCode("");
       setCodeSent(false);
-      toast({ title: "Role updated", description: `You are now signed in as ${pendingRole.replace("_", " ")}.` });
+      toast({ title: "Role updated", description: `You are now signed in as ${pendingRole === "scout_leader" ? terms.leaderTitle : pendingRole.replace("_", " ")}.` });
     } catch (err) {
       setRoleError(err instanceof Error ? err.message : "Invalid or expired code.");
     } finally {
@@ -176,7 +178,7 @@ const ParentSettingsPage = () => {
                 onClick={() => { setPendingRole(r); setRoleCode(""); setRoleError(null); setCodeSent(false); }}
                 disabled={r === user?.role}
               >
-                {r === "scout_leader" ? "Leader" : r.charAt(0).toUpperCase() + r.slice(1)}
+                {r === "scout_leader" ? terms.leaderTitle : r.charAt(0).toUpperCase() + r.slice(1)}
               </Button>
             ))}
           </div>
@@ -203,10 +205,10 @@ const ParentSettingsPage = () => {
                   </div>
                   {pendingRole === "scout_leader" && (
                     <div className="space-y-2">
-                      <Label htmlFor="leader-invite">Leader invite code</Label>
+                      <Label htmlFor="leader-invite">{terms.leaderTitle} invite code</Label>
                       <Input
                         id="leader-invite"
-                        placeholder="Enter leader invite code"
+                        placeholder={`Enter ${terms.leaderTitle.toLowerCase()} invite code`}
                         value={leaderInviteCode}
                         onChange={(e) => setLeaderInviteCode(e.target.value)}
                       />
@@ -214,7 +216,7 @@ const ParentSettingsPage = () => {
                   )}
                   {roleError && <p className="text-xs text-destructive">{roleError}</p>}
                   <Button className="w-full" onClick={handleApplyRoleChange} disabled={isApplyingRole}>
-                    {isApplyingRole ? "Applying..." : `Switch to ${pendingRole === "scout_leader" ? "Leader" : pendingRole}`}
+                    {isApplyingRole ? "Applying..." : `Switch to ${pendingRole === "scout_leader" ? terms.leaderTitle : pendingRole}`}
                   </Button>
                   <button
                     className="text-xs text-muted-foreground hover:underline w-full text-center"

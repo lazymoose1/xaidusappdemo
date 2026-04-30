@@ -71,19 +71,19 @@ const RewardsPanel = () => {
       {achievements && (
         <Card className="border-border/80 bg-white/[0.025] shadow-soft">
           <CardContent className="pt-4 pb-4 space-y-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:justify-between">
+              <div className="min-w-0 w-full">
                 <p className="eyebrow">
                   Momentum
                 </p>
-                <p className="text-base sm:text-lg font-semibold text-foreground mt-1 break-words">
+                <p className="text-base sm:text-lg font-semibold text-foreground mt-1 whitespace-normal break-words">
                   {achievements.streak.current}-day streak
                 </p>
-                <p className="text-xs text-muted-foreground mt-1 break-words">
+                <p className="text-xs text-muted-foreground mt-1 whitespace-normal break-words">
                   Longest streak: {achievements.streak.longest} days
                 </p>
               </div>
-              <div className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-semibold text-foreground shrink-0">
+              <div className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-semibold text-foreground shrink-0 self-start">
                 {earnedBadges.length} badge{earnedBadges.length !== 1 ? "s" : ""}
               </div>
             </div>

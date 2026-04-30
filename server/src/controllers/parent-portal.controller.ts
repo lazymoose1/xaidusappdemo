@@ -49,8 +49,8 @@ export async function addChild(
     const teen = await userRepo.findScoutByNickname(nickname, troopCode);
     if (!teen) {
       const msg = troopCode
-        ? 'No scout found with that troop code and nickname.'
-        : 'No scout found with that nickname. If there are multiple scouts with similar names, ask for the troop code.';
+        ? 'No youth profile found with that group code and nickname.'
+        : 'No youth profile found with that nickname. If there are multiple matching names, ask for the group code.';
       return res.status(404).json({ error: msg });
     }
     if (teen.id === req.user.id) return res.status(400).json({ error: 'You cannot link yourself.' });

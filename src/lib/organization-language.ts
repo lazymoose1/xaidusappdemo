@@ -2,7 +2,9 @@ export type OrganizationType =
   | "default_generic"
   | "public_school"
   | "you_cleveland"
-  | "open_doors_academy";
+  | "open_doors_academy"
+  | "girl_scouts"
+  | "ymca";
 
 export const DEFAULT_ORGANIZATION_TYPE: OrganizationType = "default_generic";
 
@@ -25,6 +27,16 @@ export const ORGANIZATION_TYPE_OPTIONS: Array<{
     value: "open_doors_academy",
     label: "Open Doors Academy (Cleveland)",
     helper: "Scholar-centered language for Open Doors Academy.",
+  },
+  {
+    value: "girl_scouts",
+    label: "Girl Scouts",
+    helper: "Troop, scout, and troop leader language for Girl Scout programs.",
+  },
+  {
+    value: "ymca",
+    label: "YMCA",
+    helper: "Youth-development language for YMCA programs and support staff.",
   },
   {
     value: "default_generic",
@@ -66,8 +78,8 @@ const TERM_MAP: Record<OrganizationType, OrganizationTerms> = {
     organizationLabel: "Other / General",
     youthSingular: "youth",
     youthPlural: "youth",
-    leaderTitle: "Leader",
-    leaderPlural: "leaders",
+    leaderTitle: "Support leader",
+    leaderPlural: "support leaders",
     workspaceEyebrow: "Support workspace",
     workspaceNavLabel: "Support workspace",
     workspaceHeroQuestion: "Who needs support right now?",
@@ -169,6 +181,60 @@ const TERM_MAP: Record<OrganizationType, OrganizationTerms> = {
     cohortCountLabel: "scholars",
     recognitionSubjectPlural: "Scholars recognized",
   },
+  girl_scouts: {
+    organizationType: "girl_scouts",
+    organizationLabel: "Girl Scouts",
+    youthSingular: "scout",
+    youthPlural: "scouts",
+    leaderTitle: "Troop leader",
+    leaderPlural: "troop leaders",
+    workspaceEyebrow: "Troop support workspace",
+    workspaceNavLabel: "Troop workspace",
+    workspaceHeroQuestion: "Which scouts need support right now?",
+    workspaceHeroBody:
+      "Use this space to notice stalled momentum, log follow-up, and help scouts keep moving without turning support into surveillance.",
+    queueCollectionLabel: "troop roster",
+    queueSearchLabel: "Search and filter troop roster",
+    searchPlaceholder: "Search scout name",
+    allCollectionLabel: "All scouts",
+    supportViewLabel: "Scout support view",
+    supportSummaryLabel: "Scout support summary",
+    notesLabel: "Support notes",
+    noteLabel: "Support note",
+    recentActivityLabel: "Recent support activity",
+    followUpsLabel: "Follow-ups due",
+    groupThemesLabel: "Troop themes",
+    cohortViewLabel: "Troop view",
+    cohortCountLabel: "scouts",
+    recognitionSubjectPlural: "Scouts recognized",
+  },
+  ymca: {
+    organizationType: "ymca",
+    organizationLabel: "YMCA",
+    youthSingular: "youth",
+    youthPlural: "youth",
+    leaderTitle: "Youth support staff",
+    leaderPlural: "youth support staff",
+    workspaceEyebrow: "Youth support workspace",
+    workspaceNavLabel: "Youth support",
+    workspaceHeroQuestion: "Which youth need support right now?",
+    workspaceHeroBody:
+      "Use this space to notice stalled momentum, log follow-up, and help youth keep moving without turning support into surveillance.",
+    queueCollectionLabel: "youth support list",
+    queueSearchLabel: "Search and filter youth support list",
+    searchPlaceholder: "Search youth name",
+    allCollectionLabel: "All youth",
+    supportViewLabel: "Youth support view",
+    supportSummaryLabel: "Youth support summary",
+    notesLabel: "Support notes",
+    noteLabel: "Support note",
+    recentActivityLabel: "Recent support activity",
+    followUpsLabel: "Follow-ups due",
+    groupThemesLabel: "Group themes",
+    cohortViewLabel: "Program view",
+    cohortCountLabel: "youth",
+    recognitionSubjectPlural: "Youth recognized",
+  },
 };
 
 export function normalizeOrganizationType(value?: string | null): OrganizationType {
@@ -185,3 +251,9 @@ export function getOrganizationLabel(value?: string | null): string {
   return getOrganizationTerms(value).organizationLabel;
 }
 
+export function getRoleLabel(role?: string | null, organizationType?: string | null): string {
+  if (role === "scout_leader") return getOrganizationTerms(organizationType).leaderTitle;
+  if (role === "parent") return "Parent";
+  if (role === "teen") return "Teen";
+  return role ? role.replace(/_/g, " ") : "User";
+}

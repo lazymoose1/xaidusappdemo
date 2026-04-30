@@ -17,7 +17,7 @@ import InterestsSection from "./InterestsSection";
 import RemindersSection from "./RemindersSection";
 import SocialLinksSection from "./SocialLinksSection";
 import { useSettingsForm } from "./useSettingsForm";
-import { ORGANIZATION_TYPE_OPTIONS } from "@/lib/organization-language";
+import { ORGANIZATION_TYPE_OPTIONS, getOrganizationTerms, getRoleLabel } from "@/lib/organization-language";
 
 const SettingsPage = () => {
   const navigate = useNavigate();
@@ -25,6 +25,7 @@ const SettingsPage = () => {
   const { signOut } = useAuth();
 
   const form = useSettingsForm();
+  const terms = getOrganizationTerms(form.organizationType);
 
   // Role change state
   const [pendingRole, setPendingRole] = useState(form.role);
@@ -68,7 +69,7 @@ const SettingsPage = () => {
       return;
     }
     if (pendingRole === "scout_leader" && !leaderInviteCode.trim()) {
-      setRoleError("A leader invite code is required to switch to the Leader role.");
+      setRoleError(`A ${terms.leaderTitle.toLowerCase()} invite code is required to switch to the ${terms.leaderTitle} role.`);
       return;
     }
     setIsApplyingRole(true);
@@ -82,7 +83,7 @@ const SettingsPage = () => {
       setRoleCode("");
       setLeaderInviteCode("");
       setCodeSent(false);
-      toast({ title: "Role updated", description: `You are now signed in as ${pendingRole}.` });
+      toast({ title: "Role updated", description: `You are now signed in as ${getRoleLabel(pendingRole, form.organizationType)}.` });
     } catch (err) {
       setRoleError(err instanceof Error ? err.message : "Invalid or expired code.");
     } finally {
@@ -168,7 +169,7 @@ const SettingsPage = () => {
         <div className="space-y-4 pb-6 border-b border-border">
           <h3 className="text-center font-serif text-xl text-foreground">User Role</h3>
           <p className="text-sm text-muted-foreground text-center leading-relaxed px-4">
-            Current role: <span className="font-medium text-foreground capitalize">{form.role?.replace("_", " ")}</span>.
+            Current role: <span className="font-medium text-foreground">{getRoleLabel(form.role, form.organizationType)}</span>.
             Select a new role, request a code to your email, then enter it below.
           </p>
           <div className="flex justify-center gap-3 py-2 flex-wrap">
@@ -183,7 +184,7 @@ const SettingsPage = () => {
                 onClick={() => { setPendingRole(r); setRoleCode(""); setRoleError(null); setCodeSent(false); }}
                 disabled={r === form.role}
               >
-                {r === "scout_leader" ? "Leader" : r}
+                {getRoleLabel(r, form.organizationType)}
               </Button>
             ))}
           </div>
@@ -222,11 +223,11 @@ const SettingsPage = () => {
                   {pendingRole === "scout_leader" && (
                     <div className="space-y-2">
                       <Label htmlFor="leader-invite" className="text-sm text-foreground font-medium">
-                        Leader invite code
+                        {terms.leaderTitle} invite code
                       </Label>
                       <Input
                         id="leader-invite"
-                        placeholder="Enter leader invite code"
+                        placeholder={`Enter ${terms.leaderTitle.toLowerCase()} invite code`}
                         value={leaderInviteCode}
                         onChange={(e) => setLeaderInviteCode(e.target.value)}
                       />
@@ -241,7 +242,7 @@ const SettingsPage = () => {
                     onClick={handleApplyRoleChange}
                     disabled={isApplyingRole}
                   >
-                    {isApplyingRole ? "Applying..." : `Switch to ${pendingRole === "scout_leader" ? "Leader" : pendingRole}`}
+                    {isApplyingRole ? "Applying..." : `Switch to ${getRoleLabel(pendingRole, form.organizationType)}`}
                   </Button>
 
                   <button

@@ -21,7 +21,7 @@ export async function scoutLogin(req: Request, res: Response, next: NextFunction
 
     const syntheticEmail = scoutSyntheticEmail(nickname, troopCode);
     const scout = await User.findOne({ email: syntheticEmail, is_scout_account: true }).lean();
-    if (!scout) return res.status(401).json({ error: 'Scout not found' });
+    if (!scout) return res.status(401).json({ error: 'Youth not found' });
     if (!scout.scout_pin_hash) return res.status(401).json({ error: 'Account not set up' });
 
     const pinOk = await verifyPin(pin, scout.scout_pin_hash);
@@ -58,7 +58,7 @@ export async function scoutLogin(req: Request, res: Response, next: NextFunction
 export async function createScout(req: Request, res: Response, next: NextFunction) {
   try {
     if (!req.user || req.user.role !== 'scout_leader') {
-      return res.status(403).json({ error: 'Leaders only' });
+      return res.status(403).json({ error: 'Support leaders only' });
     }
 
     const { nickname, pin, badgeFocus } = req.body;
@@ -73,7 +73,7 @@ export async function createScout(req: Request, res: Response, next: NextFunctio
       is_scout_account: true,
       troop_code: troop.troop_code,
     });
-    if (nicknameConflict) return res.status(409).json({ error: 'A scout with that nickname already exists in this troop. Choose a different one.' });
+    if (nicknameConflict) return res.status(409).json({ error: 'A youth profile with that nickname already exists in this group. Choose a different one.' });
 
     const syntheticEmail = scoutSyntheticEmail(nickname, troop.troop_code);
 

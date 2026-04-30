@@ -157,8 +157,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setProfileStatus('loaded');
       return { error: null };
     }
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) return { error };
+    if (!data.session) {
+      return {
+        error: new Error(
+          'This email may already have a sign-in. Use Sign in instead, or check your email to finish confirming the account.',
+        ),
+      };
+    }
     try {
       const profile = await authApi.registerProfile({ displayName, role: 'teen', organizationType });
       setUser({ ...profile, archetype: normalizeArchetype(profile?.archetype) });

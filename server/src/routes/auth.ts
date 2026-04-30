@@ -15,7 +15,7 @@ const registerProfileSchema = z.object({
   role: z.enum(['teen', 'parent', 'scout_leader']).default('teen'),
   leaderInviteCode: z.string().optional(),
   childName: z.string().optional(),
-  organizationType: z.enum(['public_school', 'you_cleveland', 'open_doors_academy', 'default_generic']).optional(),
+  organizationType: z.enum(['public_school', 'you_cleveland', 'open_doors_academy', 'girl_scouts', 'ymca', 'default_generic']).optional(),
 });
 
 const sendRoleCodeSchema = z.object({

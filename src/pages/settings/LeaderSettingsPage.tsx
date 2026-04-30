@@ -75,7 +75,7 @@ const LeaderSettingsPage = () => {
       return;
     }
     if (pendingRole === "scout_leader" && !leaderInviteCode.trim()) {
-      setRoleError("Leader invite code is required.");
+      setRoleError(`${terms.leaderTitle} invite code is required.`);
       return;
     }
     setIsApplyingRole(true);
@@ -89,7 +89,7 @@ const LeaderSettingsPage = () => {
       setRoleCode("");
       setLeaderInviteCode("");
       setCodeSent(false);
-      toast({ title: "Role updated", description: `You are now signed in as ${pendingRole.replace("_", " ")}.` });
+      toast({ title: "Role updated", description: `You are now signed in as ${pendingRole === "scout_leader" ? terms.leaderTitle : pendingRole.replace("_", " ")}.` });
     } catch (err) {
       setRoleError(err instanceof Error ? err.message : "Invalid or expired code.");
     } finally {
@@ -206,10 +206,10 @@ const LeaderSettingsPage = () => {
                   </div>
                   {pendingRole === "scout_leader" && (
                     <div className="space-y-2">
-                      <Label htmlFor="leader-invite">Leader invite code</Label>
+                      <Label htmlFor="leader-invite">{terms.leaderTitle} invite code</Label>
                       <Input
                         id="leader-invite"
-                        placeholder="Enter leader invite code"
+                        placeholder={`Enter ${terms.leaderTitle.toLowerCase()} invite code`}
                         value={leaderInviteCode}
                         onChange={(e) => setLeaderInviteCode(e.target.value)}
                       />

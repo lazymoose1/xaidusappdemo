@@ -1620,24 +1620,30 @@ export const LeaderDashboardPage = () => {
       </div>
 
       <Dialog open={showGuide} onOpenChange={(open) => (!open ? closeGuide() : setShowGuide(true))}>
-        <DialogContent className="flex h-[min(40rem,calc(100dvh-1rem))] w-[calc(100vw-1rem)] max-w-[72rem] flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-background p-0 shadow-strong sm:h-[min(40rem,calc(100dvh-2rem))] sm:w-[calc(100vw-2rem)]">
-          <DialogHeader className="border-b border-border/70 px-5 pb-2 pt-4 sm:px-6 sm:pt-5">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-muted-foreground">
-              <BookOpen className="h-4 w-4" />
-              <span>Workspace guide</span>
+        <DialogContent className="flex h-[min(44rem,calc(100dvh-1rem))] w-[calc(100vw-1rem)] max-w-[72rem] flex-col gap-0 !overflow-hidden rounded-[2rem] border border-white/10 bg-background p-0 shadow-strong sm:h-[min(44rem,calc(100dvh-2rem))] sm:w-[calc(100vw-2rem)] sm:!overflow-hidden [&>button:last-child]:right-4 [&>button:last-child]:top-4">
+          <DialogHeader className="shrink-0 border-b border-border/70 px-5 py-3 sm:px-6">
+            <div className="flex items-start gap-3 pr-12">
+              <div className="mt-0.5 rounded-2xl border border-border/70 bg-card p-2 text-muted-foreground">
+                <BookOpen className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 space-y-1.5">
+                <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+                  Workspace guide
+                </div>
+                <DialogTitle className="text-[1.25rem] leading-tight tracking-[-0.03em] text-foreground sm:text-[1.45rem]">How this workspace works</DialogTitle>
+                <DialogDescription className="max-w-3xl text-sm leading-6 text-muted-foreground">
+                  A focused walkthrough of what this portal shows, what it does not show, and how to use it well in {orgTerms.youthSingular} support work.
+                </DialogDescription>
+              </div>
             </div>
-            <DialogTitle className="text-[1.65rem] leading-tight tracking-[-0.03em] text-foreground sm:text-[1.85rem]">How this workspace works</DialogTitle>
-            <DialogDescription className="max-w-3xl text-sm leading-6 text-muted-foreground">
-              A quick walkthrough of what this portal shows, what it does not show, and how to use it well in {orgTerms.youthSingular} support work.
-            </DialogDescription>
           </DialogHeader>
 
-          <div className="border-b border-border/70 bg-card/60 px-5 py-2.5 sm:px-6">
+          <div className="shrink-0 border-b border-border/70 bg-card/60 px-5 py-2 sm:px-6">
             <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground">
               <span className="truncate">Step {guideStep + 1} of {guideSteps.length}</span>
               <span className="shrink-0">{Math.round(((guideStep + 1) / guideSteps.length) * 100)}%</span>
             </div>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+            <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full rounded-full bg-foreground transition-all"
                 style={{ width: `${((guideStep + 1) / guideSteps.length) * 100}%` }}
@@ -1645,9 +1651,9 @@ export const LeaderDashboardPage = () => {
             </div>
           </div>
 
-          <div className="hidden min-h-0 flex-1 lg:grid lg:grid-cols-[11rem_minmax(0,1fr)]">
-              <div className="border-r border-border/70 bg-card/40">
-                <div className="border-b border-border/70 bg-card/70 px-3 py-3">
+          <div className="hidden min-h-0 flex-1 overflow-hidden lg:grid lg:grid-cols-[14rem_minmax(0,1fr)]">
+              <div className="flex min-h-0 flex-col border-r border-border/70 bg-card/40">
+                <div className="shrink-0 border-b border-border/70 bg-card/70 px-3 py-3">
                   <p className="text-sm font-medium text-foreground">Guide steps</p>
                   <p className="mt-1 text-xs leading-5 text-muted-foreground">
                     Jump to any section. The content stays focused on one idea at a time.
@@ -1655,7 +1661,7 @@ export const LeaderDashboardPage = () => {
                 </div>
                 <div
                   ref={guideDesktopStepsRef}
-                  className="h-full overflow-y-auto overscroll-contain px-3 py-3 [-webkit-overflow-scrolling:touch]"
+                  className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 [-webkit-overflow-scrolling:touch]"
                 >
                   <div className="space-y-2">
                   {guideSteps.map((step, index) => (
@@ -1682,7 +1688,7 @@ export const LeaderDashboardPage = () => {
                 ref={guideContentRef}
                 className="min-h-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
               >
-                <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col px-5 py-4 sm:px-6 sm:py-5">
+                <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col px-5 py-5 sm:px-6 sm:py-6">
                   <div className="rounded-2xl border border-border/70 bg-background p-5 shadow-sm sm:p-6">
                     <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Current step</p>
                     <h3 className="mt-3 text-2xl font-semibold leading-tight tracking-[-0.03em] text-foreground sm:text-[2rem]">
@@ -1715,8 +1721,8 @@ export const LeaderDashboardPage = () => {
               </div>
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col lg:hidden">
-            <div className="border-b border-border/70 px-5 py-3">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:hidden">
+            <div className="shrink-0 border-b border-border/70 px-5 py-3">
               <p className="text-sm leading-6 text-foreground/82">
                 Tap any step below to jump around. The guide stays focused on one idea at a time.
               </p>

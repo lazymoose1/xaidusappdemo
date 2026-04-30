@@ -17,7 +17,7 @@ import { toast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react";
 import BrandWordmark from "@/components/BrandWordmark";
 import AuthLoadingOverlay from "@/components/auth/AuthLoadingOverlay";
-import { DEFAULT_ORGANIZATION_TYPE, ORGANIZATION_TYPE_OPTIONS } from "@/lib/organization-language";
+import { DEFAULT_ORGANIZATION_TYPE, ORGANIZATION_TYPE_OPTIONS, getOrganizationTerms } from "@/lib/organization-language";
 
 const validateEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
@@ -44,15 +44,32 @@ const LeaderAuthPage = () => {
   const [organizationType, setOrganizationType] = useState(DEFAULT_ORGANIZATION_TYPE);
 
   const [activeTab, setActiveTab] = useState<"signin" | "create">("signin");
+  const terms = getOrganizationTerms(organizationType);
 
-  const loadingTitle = activeTab === "signin" ? "Opening your support workspace" : "Setting up your leader space";
+  const loadingTitle = activeTab === "signin" ? `Opening your ${terms.workspaceNavLabel.toLowerCase()}` : `Setting up your ${terms.leaderTitle.toLowerCase()} space`;
   const loadingDescription = activeTab === "signin"
-    ? "Bringing your caseload, follow-ups, and recognition tools into view."
-    : "Getting your organization space ready so your team can start supporting youth.";
+    ? `Bringing your ${terms.queueCollectionLabel}, follow-ups, and recognition tools into view.`
+    : `Getting your organization space ready so your team can start supporting ${terms.youthPlural}.`;
+  const organizationNamePlaceholder =
+    organizationType === "girl_scouts"
+      ? "Girl Scouts Troop 4521"
+      : organizationType === "public_school"
+      ? "Lincoln High School"
+      : organizationType === "open_doors_academy"
+      ? "Open Doors Academy"
+      : organizationType === "ymca"
+      ? "Downtown YMCA"
+      : "Youth Program 4521";
+  const organizationCodeLabel =
+    organizationType === "girl_scouts"
+      ? "Troop code"
+      : organizationType === "public_school"
+      ? "School or program code"
+      : "Organization or program code";
 
   useEffect(() => {
-    document.title = "Xaidus | Leader Sign In";
-  }, []);
+    document.title = `Xaidus | ${terms.leaderTitle} Sign In`;
+  }, [terms.leaderTitle]);
 
   useEffect(() => {
     if (user?.role === "scout_leader") {
@@ -115,7 +132,7 @@ const LeaderAuthPage = () => {
         toast({ title: "Account creation failed", description: error.message, variant: "destructive" });
         return;
       }
-      toast({ title: "Account created", description: "Leader account created. You can now sign in and manage your organization space." });
+      toast({ title: "Account created", description: `${terms.leaderTitle} account created. You can now sign in and manage your organization space.` });
     } finally {
       setLoading(false);
     }
@@ -146,8 +163,8 @@ const LeaderAuthPage = () => {
           </CardTitle>
           <CardDescription className="text-center text-muted-foreground text-xs sm:text-sm break-words">
             {activeTab === "signin"
-              ? "Guide cohorts with calmer, privacy-first progress signals."
-              : "Set up your organization space and support groups without extra admin sprawl."}
+              ? `Guide ${terms.youthPlural} with calmer, privacy-first progress signals.`
+              : `Set up your organization space and support ${terms.youthPlural} without extra admin sprawl.`}
           </CardDescription>
         </CardHeader>
 
@@ -219,7 +236,7 @@ const LeaderAuthPage = () => {
                 </Button>
 
                 <p className="text-center text-sm text-muted-foreground pt-2">
-                  Need a leader account?{" "}
+                  Need a {terms.leaderTitle.toLowerCase()} account?{" "}
                   <button
                     type="button"
                     className="text-primary hover:underline"
@@ -239,14 +256,14 @@ const LeaderAuthPage = () => {
                   <Input
                     id="organizationName"
                     type="text"
-                    placeholder="Girl Scouts Troop 4521"
+                    placeholder={organizationNamePlaceholder}
                     value={organizationName}
                     onChange={(e) => setOrganizationName(e.target.value)}
                     disabled={loading}
                     required
                   />
                   <p className="text-xs text-muted-foreground">
-                    This can be a troop, school, club, or program name.
+                    This can be a school, club, program, cohort, or troop name.
                   </p>
                 </div>
 
@@ -281,7 +298,7 @@ const LeaderAuthPage = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="organizationCode">
-                    Troop / School / Program Code
+                    {organizationCodeLabel}
                   </Label>
                   <Input
                     id="organizationCode"
@@ -374,7 +391,7 @@ const LeaderAuthPage = () => {
 
                 <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
                   <p className="text-xs text-muted-foreground">
-                    Leader accounts are used to manage weekly reset, check-ins, and group support. Actions are role-based and logged for accountability.
+                    {terms.leaderTitle} accounts are used to manage weekly reset, check-ins, and group support. Actions are role-based and logged for accountability.
                   </p>
                 </div>
 
@@ -383,11 +400,11 @@ const LeaderAuthPage = () => {
                   className="w-full bg-accent hover:bg-accent/90 text-accent-foreground h-11 font-semibold"
                   disabled={loading}
                 >
-                  {loading ? "Creating account..." : "Create Leader Account"}
+                  {loading ? "Creating account..." : `Create ${terms.leaderTitle} Account`}
                 </Button>
 
                 <p className="text-center text-sm text-muted-foreground pt-2">
-                  Already have a leader account?{" "}
+                  Already have a {terms.leaderTitle.toLowerCase()} account?{" "}
                   <button
                     type="button"
                     className="text-primary hover:underline"
@@ -401,7 +418,7 @@ const LeaderAuthPage = () => {
           </Tabs>
 
           <p className="mt-6 text-xs text-muted-foreground text-center border-t border-border pt-4">
-            Xaidus helps leaders guide progress with simple workflows, not extra admin burden.
+            Xaidus helps {terms.leaderPlural} guide progress with simple workflows, not extra admin burden.
           </p>
         </CardContent>
       </Card>

@@ -113,7 +113,7 @@ function formatDateLabel(value?: Date | string | null) {
 export async function createTroop(req: Request, res: Response, next: NextFunction) {
   try {
     if (!req.user || req.user.role !== 'scout_leader') {
-      return res.status(403).json({ error: 'Leaders only' });
+      return res.status(403).json({ error: 'Support leaders only' });
     }
 
     const existing = await Troop.findOne({ leader_id: req.user.id });
@@ -156,7 +156,7 @@ export async function createTroop(req: Request, res: Response, next: NextFunctio
 export async function getTroopDashboard(req: Request, res: Response, next: NextFunction) {
   try {
     if (!req.user || req.user.role !== 'scout_leader') {
-      return res.status(403).json({ error: 'Leaders only' });
+      return res.status(403).json({ error: 'Support leaders only' });
     }
 
     const troop = await Troop.findOne({ leader_id: req.user.id }).lean();
@@ -435,9 +435,9 @@ export async function getTroopDashboard(req: Request, res: Response, next: NextF
 
     const supportSignal =
       segments.inactive.length > 0
-        ? `${segments.inactive.length} scout${segments.inactive.length === 1 ? '' : 's'} may need a lighter restart this week.`
+        ? `${segments.inactive.length} youth may need a lighter restart this week.`
         : segments.at_risk.length > 0
-        ? `${segments.at_risk.length} scout${segments.at_risk.length === 1 ? '' : 's'} could use a short supportive nudge.`
+        ? `${segments.at_risk.length} youth could use a short supportive nudge.`
         : 'The group is current enough to focus on celebration and consistency.';
 
     const conversationStarters = [
@@ -445,7 +445,7 @@ export async function getTroopDashboard(req: Request, res: Response, next: NextF
         ? 'Call out one small win the group can repeat next week.'
         : 'Ask what made it easier to show up, even on one small day.',
       segments.at_risk.length > 0
-        ? 'Prompt one simple reset for scouts who dipped after midweek.'
+        ? 'Prompt one simple reset for youth who dipped after midweek.'
         : 'Celebrate the routines that are starting to stick.',
       topThemes[0]
         ? `Notice that ${topThemes[0].label.toLowerCase()} keeps showing up across the group.`
@@ -598,7 +598,7 @@ export async function getTroopDashboard(req: Request, res: Response, next: NextF
 export async function sendNudge(req: Request, res: Response, next: NextFunction) {
   try {
     if (!req.user || req.user.role !== 'scout_leader') {
-      return res.status(403).json({ error: 'Leaders only' });
+      return res.status(403).json({ error: 'Support leaders only' });
     }
 
     const { toUserId, message } = req.body;
@@ -618,7 +618,7 @@ export async function sendNudge(req: Request, res: Response, next: NextFunction)
         isMember,
       });
     }
-    if (!isMember) return res.status(403).json({ error: 'Scout is not in your troop' });
+    if (!isMember) return res.status(403).json({ error: 'This youth is not in your group' });
 
     const nudge = await ScoutNudge.create({
       from_user_id: req.user.id,
@@ -657,7 +657,7 @@ export async function sendNudge(req: Request, res: Response, next: NextFunction)
 export async function troopWeeklyReset(req: Request, res: Response, next: NextFunction) {
   try {
     if (!req.user || req.user.role !== 'scout_leader') {
-      return res.status(403).json({ error: 'Leaders only' });
+      return res.status(403).json({ error: 'Support leaders only' });
     }
 
     const troop = await Troop.findOne({ leader_id: req.user.id }).lean();
@@ -713,7 +713,7 @@ export async function troopWeeklyReset(req: Request, res: Response, next: NextFu
 export async function awardBadge(req: Request, res: Response, next: NextFunction) {
   try {
     if (!req.user || req.user.role !== 'scout_leader') {
-      return res.status(403).json({ error: 'Leaders only' });
+      return res.status(403).json({ error: 'Support leaders only' });
     }
 
     const { toUserId, badgeTitle, badgeFocus, credentialType } = req.body;
@@ -723,7 +723,7 @@ export async function awardBadge(req: Request, res: Response, next: NextFunction
 
     const members = await resolveTroopMembers(troop);
     const isMember = members.some((member) => member.id === toUserId);
-    if (!isMember) return res.status(403).json({ error: 'Scout is not in your troop' });
+    if (!isMember) return res.status(403).json({ error: 'This youth is not in your group' });
 
     const earnedAt = new Date();
     const hashInput = `${toUserId}|${credentialType || 'badge_milestone'}|${badgeTitle}|${earnedAt.toISOString()}`;
@@ -763,7 +763,7 @@ export async function awardBadge(req: Request, res: Response, next: NextFunction
 export async function getScoutRecord(req: Request, res: Response, next: NextFunction) {
   try {
     if (!req.user || req.user.role !== 'scout_leader') {
-      return res.status(403).json({ error: 'Leaders only' });
+      return res.status(403).json({ error: 'Support leaders only' });
     }
 
     const { scoutId } = req.params;
@@ -772,10 +772,10 @@ export async function getScoutRecord(req: Request, res: Response, next: NextFunc
 
     const members = await resolveTroopMembers(troop);
     const isMember = members.some((member) => member.id === scoutId);
-    if (!isMember) return res.status(403).json({ error: 'Scout is not in your troop' });
+    if (!isMember) return res.status(403).json({ error: 'This youth is not in your group' });
 
     const scout = members.find((member) => member.id === scoutId);
-    if (!scout) return res.status(404).json({ error: 'Scout not found' });
+    if (!scout) return res.status(404).json({ error: 'Youth not found' });
 
     const credentials = await ScoutCredential.find({ user_id: scoutId })
       .sort({ earned_at: -1 })
@@ -810,7 +810,7 @@ export async function getScoutRecord(req: Request, res: Response, next: NextFunc
 export async function getScoutSupportProfile(req: Request, res: Response, next: NextFunction) {
   try {
     if (!req.user || req.user.role !== 'scout_leader') {
-      return res.status(403).json({ error: 'Leaders only' });
+      return res.status(403).json({ error: 'Support leaders only' });
     }
 
     const { scoutId } = req.params;
@@ -819,7 +819,7 @@ export async function getScoutSupportProfile(req: Request, res: Response, next: 
 
     const members = await resolveTroopMembers(troop);
     const scout = members.find((member) => member.id === scoutId);
-    if (!scout) return res.status(403).json({ error: 'Scout is not in your troop' });
+    if (!scout) return res.status(403).json({ error: 'This youth is not in your group' });
 
     const scoutObjectId = new mongoose.Types.ObjectId(scoutId);
     const weekStart = getWeekStart();
@@ -971,7 +971,7 @@ export async function getScoutSupportProfile(req: Request, res: Response, next: 
 export async function addSupportNote(req: Request, res: Response, next: NextFunction) {
   try {
     if (!req.user || req.user.role !== 'scout_leader') {
-      return res.status(403).json({ error: 'Leaders only' });
+      return res.status(403).json({ error: 'Support leaders only' });
     }
 
     const { scoutId } = req.params;
@@ -980,7 +980,7 @@ export async function addSupportNote(req: Request, res: Response, next: NextFunc
 
     const members = await resolveTroopMembers(troop);
     const scout = members.find((member) => member.id === scoutId);
-    if (!scout) return res.status(403).json({ error: 'Scout is not in your troop' });
+    if (!scout) return res.status(403).json({ error: 'This youth is not in your group' });
     const scoutObjectId = new mongoose.Types.ObjectId(scoutId);
 
     const note = await LeaderSupportNote.create({
@@ -1022,7 +1022,7 @@ export async function addSupportNote(req: Request, res: Response, next: NextFunc
 export async function logServiceHours(req: Request, res: Response, next: NextFunction) {
   try {
     if (!req.user || req.user.role !== 'scout_leader') {
-      return res.status(403).json({ error: 'Leaders only' });
+      return res.status(403).json({ error: 'Support leaders only' });
     }
 
     const { toUserId, hours, description, projectName } = req.body;
@@ -1032,7 +1032,7 @@ export async function logServiceHours(req: Request, res: Response, next: NextFun
 
     const members = await resolveTroopMembers(troop);
     const isMember = members.some((member) => member.id === toUserId);
-    if (!isMember) return res.status(403).json({ error: 'Scout is not in your troop' });
+    if (!isMember) return res.status(403).json({ error: 'This youth is not in your group' });
 
     if (!hours || hours <= 0) return res.status(400).json({ error: 'Valid hour count required' });
 

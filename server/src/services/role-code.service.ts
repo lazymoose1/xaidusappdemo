@@ -38,7 +38,7 @@ export async function sendRoleCode(
     expires_at: expiresAt,
   });
 
-  const roleLabel = targetRole === 'scout_leader' ? 'Leader' : targetRole.charAt(0).toUpperCase() + targetRole.slice(1);
+  const roleLabel = targetRole === 'scout_leader' ? 'Support leader' : targetRole.charAt(0).toUpperCase() + targetRole.slice(1);
 
   await sendParentEmail(
     userEmail,

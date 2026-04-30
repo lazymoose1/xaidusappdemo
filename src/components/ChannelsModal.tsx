@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { threadsApi } from "@/api/endpoints";
 import { apiFetch } from "@/api/client";
+import { getRoleLabel } from "@/lib/organization-language";
 
 interface ChannelsModalProps {
   open: boolean;
@@ -256,7 +257,7 @@ const ChannelsModal = ({ open, onOpenChange }: ChannelsModalProps) => {
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm text-foreground truncate">{user.displayName}</p>
                       {user.role && (
-                        <p className="text-xs text-muted-foreground capitalize">{user.role.replace("_", " ")}</p>
+                        <p className="text-xs text-muted-foreground">{getRoleLabel(user.role)}</p>
                       )}
                     </div>
                     {tab === "group" && (

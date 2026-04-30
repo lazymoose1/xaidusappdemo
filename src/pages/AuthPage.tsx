@@ -139,6 +139,13 @@ const AuthPage = () => {
             description: "This email is already registered. Please login instead.",
             variant: "destructive",
           });
+        } else if (error.message.includes('already have a sign-in') || error.message.includes('finish confirming')) {
+          toast({
+            title: "Use sign in for this email",
+            description: error.message,
+            variant: "destructive",
+          });
+          setIsLogin(true);
         } else {
           toast({
             title: "Authentication Error",
