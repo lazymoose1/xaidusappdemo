@@ -6,6 +6,24 @@ import { supabaseAdmin } from '../config/supabase';
 import { env } from '../config/env';
 import { UNREGISTERED_USER_ID } from '../middleware/auth';
 import { writeAuditLog } from '../models';
+import { logger } from '../lib/logger';
+
+function authDiagnosticsEnabled() {
+  return env.AUTH_DIAGNOSTICS === 'true';
+}
+
+function maskEmail(email?: string | null) {
+  if (!email) return null;
+  const [name, domain] = email.split('@');
+  if (!domain) return 'invalid-email';
+  const first = name.charAt(0) || '*';
+  return `${first}${'*'.repeat(Math.max(name.length - 1, 1))}@${domain}`;
+}
+
+function idTail(id?: string | null) {
+  if (!id) return null;
+  return id.length <= 8 ? id : id.slice(-8);
+}
 
 export async function registerProfile(
   req: Request,
@@ -58,6 +76,21 @@ export async function getMe(req: Request, res: Response, next: NextFunction) {
         role: 'teen',
       });
 
+      if (authDiagnosticsEnabled()) {
+        logger.warn(
+          {
+            requestId: req.id,
+            authPath: 'supabase',
+            action: 'jit_created_profile',
+            supabaseUserIdTail: idTail(req.user.authId),
+            supabaseEmail: maskEmail(email),
+            mongoUserId: result.id,
+            mongoRole: result.role,
+          },
+          'Auth lookup diagnostics: created missing Mongo profile during /api/auth/me',
+        );
+      }
+
       return res.json({
         id: result.id,
         email,
@@ -75,6 +108,23 @@ export async function getMe(req: Request, res: Response, next: NextFunction) {
     }
 
     const profile = await userService.getProfile(req.user.id);
+    if (authDiagnosticsEnabled()) {
+      logger.info(
+        {
+          requestId: req.id,
+          action: 'returned_profile',
+          mongoUserId: profile.id,
+          role: profile.role,
+          displayName: profile.displayName || null,
+          organizationType: profile.organizationType,
+          troopCode: profile.troopCode || null,
+          isScoutAccount: profile.isScoutAccount,
+          isScoutMember: profile.isScoutMember,
+          email: maskEmail(profile.email),
+        },
+        'Auth lookup diagnostics: /api/auth/me response profile',
+      );
+    }
     return res.json(profile);
   } catch (err) {
     next(err);

@@ -11,6 +11,7 @@ const envSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
   FRONTEND_ORIGIN: z.string().default('http://localhost:5173'),
   FRONTEND_ORIGINS: z.string().optional(),
+  AUTH_DIAGNOSTICS: z.string().optional(),
   SYSTEM_API_KEY: z.string().min(1).optional(),
   TOKEN_ENCRYPTION_KEY: z.string().min(1).optional(),
   OPENAI_API_KEY: z.string().optional(),

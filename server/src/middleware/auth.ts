@@ -4,6 +4,7 @@ import { supabaseAdmin } from '../config/supabase';
 import { env } from '../config/env';
 import { User } from '../models';
 import { verifyScoutJwt } from '../services/scout-auth.service';
+import { logger } from '../lib/logger';
 
 export const UNREGISTERED_USER_ID = '__unregistered__';
 
@@ -14,6 +15,37 @@ export interface AuthUser {
   troopCode?: string;
   isScoutAccount?: boolean;
   isScoutMember?: boolean;
+}
+
+function isAuthDiagnosticsEnabled(req: Request) {
+  return env.AUTH_DIAGNOSTICS === 'true' && req.originalUrl.includes('/api/auth/me');
+}
+
+function maskEmail(email?: string | null) {
+  if (!email) return null;
+  const [name, domain] = email.split('@');
+  if (!domain) return 'invalid-email';
+  const first = name.charAt(0) || '*';
+  return `${first}${'*'.repeat(Math.max(name.length - 1, 1))}@${domain}`;
+}
+
+function idTail(id?: string | null) {
+  if (!id) return null;
+  return id.length <= 8 ? id : id.slice(-8);
+}
+
+function logAuthLookup(req: Request, data: Record<string, unknown>, message: string) {
+  if (!isAuthDiagnosticsEnabled(req)) return;
+  logger.info(
+    {
+      requestId: req.id,
+      path: req.originalUrl,
+      dbName: User.db.name,
+      collection: User.collection.name,
+      ...data,
+    },
+    message,
+  );
 }
 
 export const authMiddleware: RequestHandler = async (
@@ -37,6 +69,19 @@ export const authMiddleware: RequestHandler = async (
   const scoutPayload = verifyScoutJwt(token);
   if (scoutPayload) {
     const dbUser = await User.findById(scoutPayload.sub).select('role is_scout_account troop_code').lean();
+    logAuthLookup(
+      req,
+      {
+        authPath: 'scout_jwt',
+        scoutPayloadSubTail: idTail(scoutPayload.sub),
+        mongoUserFound: Boolean(dbUser),
+        mongoUserId: dbUser ? (dbUser._id as any).toString() : null,
+        mongoRole: dbUser?.role || null,
+        troopCode: dbUser?.troop_code || null,
+        isScoutAccount: Boolean(dbUser?.is_scout_account),
+      },
+      'Auth lookup diagnostics: scout token resolved',
+    );
     if (!dbUser || !dbUser.is_scout_account) {
       return res.status(401).json({ error: 'Invalid scout token' });
     }
@@ -60,12 +105,39 @@ export const authMiddleware: RequestHandler = async (
     } = await supabaseAdmin.auth.getUser(token);
 
     if (error || !supaUser) {
+      logAuthLookup(
+        req,
+        {
+          authPath: 'supabase',
+          supabaseUserFound: false,
+          supabaseError: error?.message || null,
+        },
+        'Auth lookup diagnostics: Supabase token rejected',
+      );
       return res.status(401).json({ error: 'Invalid token' });
     }
 
     const dbUser = await User.findOne({ auth_id: supaUser.id })
       .select('role auth_id troop_code is_scout_account')
       .lean();
+
+    logAuthLookup(
+      req,
+      {
+        authPath: 'supabase',
+        supabaseUserFound: true,
+        supabaseUserIdTail: idTail(supaUser.id),
+        supabaseEmail: maskEmail(supaUser.email),
+        mongoLookup: { auth_id_tail: idTail(supaUser.id) },
+        mongoUserFound: Boolean(dbUser),
+        mongoUserId: dbUser ? (dbUser._id as any).toString() : null,
+        mongoAuthIdTail: idTail(dbUser?.auth_id),
+        mongoRole: dbUser?.role || null,
+        troopCode: dbUser?.troop_code || null,
+        isScoutAccount: Boolean(dbUser?.is_scout_account),
+      },
+      'Auth lookup diagnostics: Supabase user mapped to Mongo profile',
+    );
 
     if (!dbUser) {
       // Allow through for profile registration — controller will create the DB row
