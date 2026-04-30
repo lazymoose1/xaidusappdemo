@@ -138,6 +138,7 @@ vi.mock('../models', () => mockModels);
 // Mock mongoose connection
 vi.mock('../lib/mongoose', () => ({
   connectDB: vi.fn().mockResolvedValue(undefined),
+  isDBConnected: vi.fn().mockReturnValue(true),
 }));
 
 // Mock rate-limiter with high limits to avoid 429 in tests while still producing headers

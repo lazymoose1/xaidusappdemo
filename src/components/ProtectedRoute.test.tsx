@@ -35,7 +35,7 @@ describe('ProtectedRoute', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Loading your space...')).toBeInTheDocument();
+    expect(screen.getByText('Loading your Xaidus space...')).toBeInTheDocument();
     expect(screen.queryByText('Protected Content')).not.toBeInTheDocument();
   });
 
