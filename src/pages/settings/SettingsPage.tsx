@@ -18,6 +18,7 @@ import RemindersSection from "./RemindersSection";
 import SocialLinksSection from "./SocialLinksSection";
 import { useSettingsForm } from "./useSettingsForm";
 import { ORGANIZATION_TYPE_OPTIONS, getOrganizationTerms, getRoleLabel } from "@/lib/organization-language";
+import FeedbackDialog from "@/components/FeedbackDialog";
 
 const SettingsPage = () => {
   const navigate = useNavigate();
@@ -35,6 +36,7 @@ const SettingsPage = () => {
   const [isSendingCode, setIsSendingCode] = useState(false);
   const [isApplyingRole, setIsApplyingRole] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   useEffect(() => {
     setPendingRole(form.role);
@@ -386,6 +388,16 @@ const SettingsPage = () => {
           save
         </Button>
 
+        <div className="mt-8 rounded-lg border border-border bg-card/60 p-5 space-y-3">
+          <h3 className="font-serif text-2xl text-center text-foreground">Help improve Xaidus</h3>
+          <p className="text-sm text-muted-foreground text-center leading-relaxed">
+            Share a bug, confusing moment, product idea, or trust/safety concern.
+          </p>
+          <Button variant="outline" onClick={() => setFeedbackOpen(true)} className="w-full py-6 text-base font-semibold">
+            Share feedback
+          </Button>
+        </div>
+
         {/* Sign Out */}
         <div className="mt-8 bg-primary/20 rounded-lg p-6 space-y-4">
           <h3 className="font-serif text-2xl text-center text-foreground">
@@ -406,6 +418,8 @@ const SettingsPage = () => {
           </button>
         </div>
       </main>
+
+      <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
     </div>
   );
 };

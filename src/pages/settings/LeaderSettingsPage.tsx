@@ -10,6 +10,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import { authApi, settingsApi } from "@/api/endpoints";
 import { useToast } from "@/hooks/use-toast";
 import { ORGANIZATION_TYPE_OPTIONS, getOrganizationTerms, normalizeOrganizationType } from "@/lib/organization-language";
+import FeedbackDialog from "@/components/FeedbackDialog";
 
 const LeaderSettingsPage = () => {
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ const LeaderSettingsPage = () => {
   const [isSendingCode, setIsSendingCode] = useState(false);
   const [isApplyingRole, setIsApplyingRole] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   useEffect(() => {
     if (user) setDisplayName(user.displayName || "");
@@ -237,6 +239,16 @@ const LeaderSettingsPage = () => {
           <ThemeModeRow />
         </div>
 
+        <div className="space-y-3 pb-6 border-b border-border">
+          <h3 className="font-serif text-lg text-foreground">Feedback</h3>
+          <p className="text-sm text-muted-foreground">
+            Share a bug, confusing moment, product idea, or trust/safety concern.
+          </p>
+          <Button variant="outline" onClick={() => setFeedbackOpen(true)} className="w-full py-6 text-base font-semibold border-2">
+            Share feedback
+          </Button>
+        </div>
+
         {/* Sign out */}
         <div className="space-y-4">
           <Button variant="outline" onClick={handleSignOut} className="w-full py-6 text-base font-semibold border-2">
@@ -249,6 +261,8 @@ const LeaderSettingsPage = () => {
           </div>
         </div>
       </main>
+
+      <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
     </div>
   );
 };

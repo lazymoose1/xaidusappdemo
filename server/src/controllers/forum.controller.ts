@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { ForumPost, ForumReply, User } from '../models';
 
+const FORUM_CATEGORIES = new Set(['Wins', 'Help', 'Ideas', 'General', 'Tips', 'Announcement']);
+
 function normalizePost(post: any, currentUserId: string) {
   return {
     id: (post._id as any).toString(),
@@ -100,10 +102,14 @@ export async function createPost(req: Request, res: Response, next: NextFunction
 
     const authorName = await getAuthorName(req.user.id);
 
+    const normalizedCategory = typeof category === 'string' && FORUM_CATEGORIES.has(category)
+      ? category
+      : 'General';
+
     const post = await ForumPost.create({
       title: title.trim().slice(0, 200),
       body: body.trim().slice(0, 10000),
-      category: category || 'General',
+      category: normalizedCategory,
       author_id: req.user.id,
       author_display_name: authorName,
       is_pinned: false,

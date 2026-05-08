@@ -199,7 +199,7 @@ export async function checkinGoal(
     }
   }
 
-  const updated = await goalRepo.update(goalId, {
+  let updated = await goalRepo.update(goalId, {
     completed_dates: completedDates,
     last_checkin: lastCheckin,
   });
@@ -226,6 +226,16 @@ export async function checkinGoal(
   ).length;
   const pd = (updated.planned_days as PlannedDays) || {};
   const plannedCount = Object.values(pd).filter(Boolean).length || 1;
+  const justCompleted = status === 'yes' && !goal.completed && completedThisWeek >= plannedCount;
+
+  if (justCompleted) {
+    updated = await goalRepo.update(goalId, {
+      completed: true,
+      status: 'completed',
+      progress: 100,
+      completed_at: today,
+    });
+  }
 
   // Award Mark for yes check-ins
   let rewardEarned: { type: string; title: string } | null = null;
@@ -240,6 +250,7 @@ export async function checkinGoal(
     plannedCount,
     weekStart,
     rewardEarned,
+    justCompleted,
   };
 }
 

@@ -35,6 +35,7 @@ const LeaderAuthPage = lazy(() => import("./pages/auth/LeaderAuthPage"));
 const LeaderSettingsPage = lazy(() => import("./pages/settings/LeaderSettingsPage"));
 const ParentSettingsPage = lazy(() => import("./pages/settings/ParentSettingsPage"));
 const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
+const ExplorePage = lazy(() => import("./pages/ExplorePage"));
 
 // Keep swipe navigation aligned with the focused return loop.
 const navOrder = ["/", "/notifications", "/settings"];
@@ -95,6 +96,7 @@ const AppContent = () => {
         <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
         <Route path="/messages/:threadId" element={<ProtectedRoute><ThreadDetailPage /></ProtectedRoute>} />
         <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+        <Route path="/explore" element={<ProtectedRoute><ExplorePage /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><ParentDashboard /></ProtectedRoute>} />
         <Route path="/scout-onboarding" element={<ProtectedRoute><ScoutOnboardingPage /></ProtectedRoute>} />

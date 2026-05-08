@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
+import { HelpCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { apiFetch } from "@/api/client";
 import { achievementsApi } from "@/api/endpoints";
 import type { ApiAchievementsResponse } from "@/types/api";
@@ -30,6 +39,7 @@ const RewardsPanel = () => {
   const [achievements, setAchievements] = useState<ApiAchievementsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,14 +78,41 @@ const RewardsPanel = () => {
 
   return (
     <div className="w-full space-y-3">
+      <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
+        <DialogContent className="max-w-md rounded-[1.75rem]">
+          <DialogHeader>
+            <DialogTitle>How rewards work</DialogTitle>
+            <DialogDescription>
+              Rewards are here to make effort visible, not to judge you.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <p><span className="font-semibold text-foreground">Marks</span> show small check-in wins and daily follow-through.</p>
+            <p><span className="font-semibold text-foreground">Moments</span> show bigger progress, like finishing a goal or building a streak.</p>
+            <p><span className="font-semibold text-foreground">Badges</span> recognize patterns you are building over time.</p>
+            <p><span className="font-semibold text-foreground">Moova</span> unlocks when your momentum starts stacking up.</p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {achievements && (
         <Card className="border-border/80 bg-white/[0.025] shadow-soft">
           <CardContent className="pt-4 pb-4 space-y-3">
             <div className="flex flex-col items-start gap-3 sm:flex-row sm:justify-between">
               <div className="min-w-0 w-full">
-                <p className="eyebrow">
-                  Momentum
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="eyebrow">Momentum</p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground"
+                    aria-label="Explain badges and rewards"
+                    onClick={() => setHelpOpen(true)}
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                  </Button>
+                </div>
                 <p className="text-base sm:text-lg font-semibold text-foreground mt-1 whitespace-normal break-words">
                   {achievements.streak.current}-day streak
                 </p>

@@ -10,9 +10,10 @@ import PageHeader from "@/components/PageHeader";
 import { forumsApi } from "@/api/endpoints";
 import type { ApiForumPost, ForumCategory } from "@/types/api";
 
-const CATEGORIES: ForumCategory[] = ["Help", "Ideas", "General", "Tips", "Announcement"];
+const CATEGORIES: ForumCategory[] = ["Wins", "Help", "Ideas", "General", "Tips", "Announcement"];
 
 const CATEGORY_COLORS: Record<string, string> = {
+  Wins: "bg-amber-100 text-amber-800 border-amber-200",
   Help: "bg-blue-100 text-blue-700 border-blue-200",
   Ideas: "bg-purple-100 text-purple-700 border-purple-200",
   General: "bg-gray-100 text-gray-700 border-gray-200",

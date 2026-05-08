@@ -513,7 +513,7 @@ export interface ApiRewardsData {
 
 export type NotificationItem = {
   id: string;
-  type: 'nudge' | 'thread_message' | 'forum_reply';
+  type: 'nudge' | 'thread_message' | 'forum_reply' | 'goal_win';
   title: string;
   body: string;
   linkTo: string;
@@ -526,7 +526,7 @@ export type ApiNotificationsResponse = {
   total: number;
 };
 
-export type ForumCategory = 'Help' | 'Ideas' | 'General' | 'Tips' | 'Announcement';
+export type ForumCategory = 'Wins' | 'Help' | 'Ideas' | 'General' | 'Tips' | 'Announcement';
 
 export type ApiForumPost = {
   id: string;

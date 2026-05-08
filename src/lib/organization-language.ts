@@ -56,6 +56,9 @@ export type OrganizationTerms = {
   workspaceNavLabel: string;
   workspaceHeroQuestion: string;
   workspaceHeroBody: string;
+  groupUnitLabel: string;
+  groupCodeLabel: string;
+  youthCredentialLabel: string;
   queueCollectionLabel: string;
   queueSearchLabel: string;
   searchPlaceholder: string;
@@ -85,6 +88,9 @@ const TERM_MAP: Record<OrganizationType, OrganizationTerms> = {
     workspaceHeroQuestion: "Who needs support right now?",
     workspaceHeroBody:
       "Use this space to notice stalled momentum, log follow-up, and keep youth moving without turning the work into surveillance.",
+    groupUnitLabel: "group",
+    groupCodeLabel: "group code",
+    youthCredentialLabel: "recognition",
     queueCollectionLabel: "support queue",
     queueSearchLabel: "Search and filter support queue",
     searchPlaceholder: "Search youth name",
@@ -112,6 +118,9 @@ const TERM_MAP: Record<OrganizationType, OrganizationTerms> = {
     workspaceHeroQuestion: "Which students need support right now?",
     workspaceHeroBody:
       "Use this space to notice stalled momentum, log follow-up, and help students stay on track without turning support into surveillance.",
+    groupUnitLabel: "student group",
+    groupCodeLabel: "group code",
+    youthCredentialLabel: "recognition",
     queueCollectionLabel: "student list",
     queueSearchLabel: "Search and filter student list",
     searchPlaceholder: "Search student name",
@@ -139,6 +148,9 @@ const TERM_MAP: Record<OrganizationType, OrganizationTerms> = {
     workspaceHeroQuestion: "Who needs support right now?",
     workspaceHeroBody:
       "Use this space to notice stalled momentum, log follow-up, and keep youth moving without turning the work into surveillance.",
+    groupUnitLabel: "cohort",
+    groupCodeLabel: "cohort code",
+    youthCredentialLabel: "recognition",
     queueCollectionLabel: "caseload",
     queueSearchLabel: "Search and filter caseload",
     searchPlaceholder: "Search youth name",
@@ -166,6 +178,9 @@ const TERM_MAP: Record<OrganizationType, OrganizationTerms> = {
     workspaceHeroQuestion: "Which scholars need support right now?",
     workspaceHeroBody:
       "Use this space to notice stalled momentum, log follow-up, and help scholars keep moving without turning support into surveillance.",
+    groupUnitLabel: "scholar group",
+    groupCodeLabel: "group code",
+    youthCredentialLabel: "recognition",
     queueCollectionLabel: "scholar support list",
     queueSearchLabel: "Search and filter scholar support list",
     searchPlaceholder: "Search scholar name",
@@ -193,6 +208,9 @@ const TERM_MAP: Record<OrganizationType, OrganizationTerms> = {
     workspaceHeroQuestion: "Which scouts need support right now?",
     workspaceHeroBody:
       "Use this space to notice stalled momentum, log follow-up, and help scouts keep moving without turning support into surveillance.",
+    groupUnitLabel: "troop",
+    groupCodeLabel: "troop code",
+    youthCredentialLabel: "badge",
     queueCollectionLabel: "troop roster",
     queueSearchLabel: "Search and filter troop roster",
     searchPlaceholder: "Search scout name",
@@ -220,6 +238,9 @@ const TERM_MAP: Record<OrganizationType, OrganizationTerms> = {
     workspaceHeroQuestion: "Which youth need support right now?",
     workspaceHeroBody:
       "Use this space to notice stalled momentum, log follow-up, and help youth keep moving without turning support into surveillance.",
+    groupUnitLabel: "program group",
+    groupCodeLabel: "group code",
+    youthCredentialLabel: "recognition",
     queueCollectionLabel: "youth support list",
     queueSearchLabel: "Search and filter youth support list",
     searchPlaceholder: "Search youth name",

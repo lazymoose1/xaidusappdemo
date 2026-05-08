@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import RewardsPanel from "@/components/RewardsPanel";
 import type { TrophyBadge } from "@/lib/badges";
 
 interface WelcomeSectionProps {
@@ -60,8 +59,6 @@ const WelcomeSection = ({
             ))}
           </div>
         )}
-
-        <RewardsPanel />
       </div>
     </div>
   );

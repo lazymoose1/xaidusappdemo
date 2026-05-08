@@ -19,6 +19,7 @@ import scoutRoutes from './scout';
 import rewardsRoutes from './rewards';
 import forumRoutes from './forum';
 import notificationsRoutes from './notifications';
+import feedbackRoutes from './feedback';
 import {
   uploadLimiter,
   cronLimiter,
@@ -48,3 +49,4 @@ apiRouter.use('/scout', scoutRoutes);
 apiRouter.use('/rewards', rewardsRoutes);
 apiRouter.use('/forum', forumRoutes);
 apiRouter.use('/notifications', notificationsRoutes);
+apiRouter.use('/feedback', feedbackRoutes);

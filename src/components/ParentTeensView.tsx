@@ -82,7 +82,7 @@ const ParentTeensView = () => {
     } catch (err) {
       toast({
         title: "Couldn't find teen",
-        description: err instanceof Error ? err.message : "Check the troop code and nickname and try again.",
+        description: err instanceof Error ? err.message : "Check the group code and nickname and try again.",
         variant: "destructive",
       });
     } finally {
@@ -239,14 +239,14 @@ const ParentTeensView = () => {
                 </Button>
               </div>
               <Input
-                placeholder="Troop code (optional)"
+                placeholder="Group code (optional)"
                 value={troopCode}
                 onChange={(e) => setTroopCode(e.target.value.toUpperCase())}
                 disabled={submitting}
                 className="font-mono uppercase text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                Enter the nickname they use to sign in. Add a troop code only if the nickname needs help matching.
+                Enter the nickname they use to sign in. Add a group code only if the nickname needs help matching.
               </p>
             </form>
           </CardContent>

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { Compass, Eye, EyeOff, Sparkles, Target } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, Eye, EyeOff, Sparkles, Target, UsersRound } from "lucide-react";
 import { SocialSSOButtons } from "@/components/SocialSSOButtons";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { goalsApi } from "@/api/endpoints";
@@ -18,18 +18,28 @@ import { DEFAULT_ORGANIZATION_TYPE, ORGANIZATION_TYPE_OPTIONS } from "@/lib/orga
 const newUserSteps = [
   {
     icon: Target,
-    title: "Pick one small goal",
+    title: "Set goals",
     description: "Start with one clear goal that turns pressure into a next step you can actually do today.",
   },
   {
-    icon: Sparkles,
-    title: "Check in fast",
+    icon: CheckCircle2,
+    title: "Check in",
     description: "The daily pulse is built to take seconds, not become another thing hanging over you.",
   },
   {
-    icon: Compass,
-    title: "Build visible progress",
-    description: "Streaks, weekly momentum, and TINY guidance help you see movement before things pile up.",
+    icon: Sparkles,
+    title: "Earn & grow",
+    description: "Streaks, micro-wins, and rewards help effort become identity over time.",
+  },
+  {
+    icon: ArrowUpRight,
+    title: "Progress snapshot",
+    description: "Parents see effort trends and goals, never private messages or hidden monitoring.",
+  },
+  {
+    icon: UsersRound,
+    title: "Support cohorts",
+    description: "Support teams use group patterns to guide youth with care, not surveillance.",
   },
 ] as const;
 
@@ -61,7 +71,7 @@ const AuthPage = () => {
   const navigate = useNavigate();
 
   const authLoadingTitle = authMode === "scout"
-    ? "Opening your troop space"
+    ? "Opening your group space"
     : authMode === "adult"
     ? "Getting things ready"
     : isLogin
@@ -69,7 +79,7 @@ const AuthPage = () => {
     : "Building your account";
 
   const authLoadingDescription = authMode === "scout"
-    ? "Pulling in your latest check-ins, goals, and troop setup."
+    ? "Pulling in your latest check-ins, goals, and group setup."
     : authMode === "adult"
     ? "Warming up the right sign-in path for your role."
     : isLogin
@@ -192,11 +202,11 @@ const AuthPage = () => {
           <div className="text-center space-y-2">
             <p className="eyebrow">Teen-led. Trust-first.</p>
           <CardTitle className="text-[2rem] sm:text-[2.35rem] text-center text-foreground normal-case tracking-[-0.03em]">
-            {authMode === 'scout' ? "Scout Sign In" : authMode === 'adult' ? "Welcome to Xaidus" : isLogin ? "Welcome back" : "Welcome to Xaidus"}
+            {authMode === 'scout' ? "Youth Sign In" : authMode === 'adult' ? "Welcome to Xaidus" : isLogin ? "Welcome back" : "Welcome to Xaidus"}
           </CardTitle>
           <CardDescription className="text-center text-muted-foreground text-sm max-w-sm mx-auto leading-relaxed">
             {authMode === 'scout'
-              ? "Enter your troop code, nickname, and PIN"
+              ? "Enter your group code, nickname, and PIN"
               : authMode === 'adult'
               ? "Peace, not surveillance. Choose how you're signing in."
               : isLogin
@@ -211,7 +221,7 @@ const AuthPage = () => {
               <div className="space-y-1 text-left">
                 <p className="eyebrow">How new users get started</p>
                 <p className="text-sm leading-6 text-muted-foreground">
-                  New users land in one simple rhythm: goal, pulse, progress.
+                  New users land in one simple rhythm: goals, pulse, growth, snapshot, support.
                 </p>
               </div>
               <div className="space-y-3">
@@ -244,7 +254,7 @@ const AuthPage = () => {
               onSubmit={async (e) => {
                 e.preventDefault();
                 if (!troopCode.trim() || !scoutNickname.trim() || !/^\d{4,6}$/.test(scoutPin)) {
-                  toast({ title: "Check your details", description: "Troop code, nickname, and a 4–6 digit PIN are required.", variant: "destructive" });
+                  toast({ title: "Check your details", description: "Group code, nickname, and a 4–6 digit PIN are required.", variant: "destructive" });
                   return;
                 }
                 setLoading(true);
@@ -261,8 +271,8 @@ const AuthPage = () => {
               }}
             >
               <div className="space-y-2">
-                <Label htmlFor="troopCode">Troop Code</Label>
-                <Input id="troopCode" placeholder="e.g., GS-TROOP42" value={troopCode} onChange={(e) => setTroopCode(e.target.value.toUpperCase())} disabled={loading} />
+                <Label htmlFor="troopCode">Group Code</Label>
+                <Input id="troopCode" placeholder="e.g., GROUP42" value={troopCode} onChange={(e) => setTroopCode(e.target.value.toUpperCase())} disabled={loading} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="scoutNickname">Nickname</Label>
@@ -274,14 +284,14 @@ const AuthPage = () => {
                 <Input id="scoutPin" type="password" inputMode="numeric" placeholder="••••" maxLength={6} value={scoutPin} onChange={(e) => setScoutPin(e.target.value.replace(/\D/g, ''))} disabled={loading} />
               </div>
               <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground h-11 font-semibold" disabled={loading}>
-                {loading ? "Opening troop..." : "Enter Troop"}
+                {loading ? "Opening group..." : "Enter Group"}
               </Button>
               <p className="text-xs text-muted-foreground text-center">
-                Your leader sets up your PIN during troop onboarding.
+                Your support leader sets up your PIN during group onboarding.
               </p>
               <div className="text-center pt-2">
                 <button type="button" className="text-sm text-muted-foreground hover:text-primary hover:underline" onClick={() => setAuthMode('adult')}>
-                  Not a Girl Scout? Sign in here
+                  Not using a group PIN? Sign in here
                 </button>
               </div>
             </form>
@@ -318,7 +328,7 @@ const AuthPage = () => {
                   className="text-xs text-muted-foreground hover:text-primary hover:underline"
                   onClick={() => setAuthMode('scout')}
                 >
-                  ← Back to Scout sign in
+                  ← Back to youth sign in
                 </button>
               </div>
             </div>

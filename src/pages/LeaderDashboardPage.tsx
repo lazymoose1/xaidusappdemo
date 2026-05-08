@@ -28,7 +28,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import { exportLeaderReport } from "@/lib/leader-report-export";
 import { getOrganizationTerms, type OrganizationTerms } from "@/lib/organization-language";
 import { ArrowLeft, Award, Shield, ChevronRight, TrendingUp, Users, Sparkles, Search, CalendarClock, AlertCircle, ClipboardList, Download, Gift, HeartHandshake, BookOpen } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, LabelList, Line, LineChart, XAxis, YAxis } from "recharts";
 
 const BADGE_FAMILIES = [
   "Cookie Entrepreneur", "STEM", "Outdoor Adventure", "Leadership",
@@ -270,7 +270,7 @@ export const LeaderDashboardPage = () => {
     setCreatingTroop(true);
     try {
       await troopApi.create({ name: troopName.trim(), troopCode: troopCode.trim() });
-      toast({ title: "Troop created!" });
+      toast({ title: `${groupUnitCap} created!` });
       setView("dashboard");
       fetchDashboard();
     } catch (err: any) {
@@ -295,7 +295,7 @@ export const LeaderDashboardPage = () => {
       });
       toast({
         title: `${result.nickname} added!`,
-        description: `Troop code: ${result.troopCode} — share with the scout.`,
+        description: `${groupCodeCap}: ${result.troopCode} — share with the ${youthLabel}.`,
       });
       setScoutNickname("");
       setScoutPin("");
@@ -309,13 +309,13 @@ export const LeaderDashboardPage = () => {
   };
 
   const handleWeeklyReset = async () => {
-    if (!confirm("Trigger the weekly reset for your whole troop? This marks the end of the week for everyone.")) return;
+    if (!confirm(`Trigger the weekly reset for your whole ${groupUnitLabel}? This marks the end of the week for everyone.`)) return;
     setResetLoading(true);
     try {
       const result = await troopApi.weeklyReset();
       toast({
         title: "Weekly reset complete",
-        description: `${result.completedCount}/${result.totalScouts} scouts reset (${Math.round(result.completionRate * 100)}%)`,
+        description: `${result.completedCount}/${result.totalScouts} ${orgTerms.youthPlural} reset (${Math.round(result.completionRate * 100)}%)`,
       });
       fetchDashboard();
     } catch {
@@ -328,7 +328,7 @@ export const LeaderDashboardPage = () => {
   const handleAwardCredential = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!credentialScoutId) {
-      toast({ title: "Select a scout first", variant: "destructive" });
+      toast({ title: `Select ${youthLabel} first`, variant: "destructive" });
       return;
     }
     setAwarding(true);
@@ -357,7 +357,7 @@ export const LeaderDashboardPage = () => {
   const handleLogServiceHours = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!credentialScoutId || !serviceHours) {
-      toast({ title: "Select a scout and enter hours", variant: "destructive" });
+      toast({ title: `Select ${youthLabel} and enter hours`, variant: "destructive" });
       return;
     }
     setAwarding(true);
@@ -563,6 +563,13 @@ export const LeaderDashboardPage = () => {
 
   const isServiceHoursMode = credentialType === ("service_hours");
   const currentGuideStep = guideSteps[guideStep];
+  const youthLabel = orgTerms.youthSingular;
+  const youthLabelCap = youthLabel.charAt(0).toUpperCase() + youthLabel.slice(1);
+  const groupUnitLabel = orgTerms.groupUnitLabel;
+  const groupUnitCap = groupUnitLabel.charAt(0).toUpperCase() + groupUnitLabel.slice(1);
+  const groupCodeLabel = orgTerms.groupCodeLabel;
+  const groupCodeCap = groupCodeLabel.charAt(0).toUpperCase() + groupCodeLabel.slice(1);
+  const credentialLabelCap = orgTerms.youthCredentialLabel.charAt(0).toUpperCase() + orgTerms.youthCredentialLabel.slice(1);
 
   return (
     <div className="min-h-screen bg-background pb-16">
@@ -591,59 +598,61 @@ export const LeaderDashboardPage = () => {
           </div>
         )}
 
-        {/* ── Create troop ─────────────────────────────────────────────── */}
+        {/* ── Create group ─────────────────────────────────────────────── */}
         {!loading && view === "create_troop" && (
           <Card className="mx-auto w-full max-w-xl border-0 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-lg font-serif break-words">Set up your troop</CardTitle>
+              <CardTitle className="text-lg font-serif break-words">Set up your {groupUnitLabel}</CardTitle>
               <p className="text-xs text-muted-foreground mt-1">
-                Xaidus works as a digital extension of your badge work — every goal and check-in becomes a verifiable record that travels with each girl.
+                Xaidus helps your {groupUnitLabel} turn goals, check-ins, and follow-through into a clear support record.
               </p>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCreateTroop} className="space-y-4">
                 <div className="space-y-1">
-                  <Label htmlFor="troopName">Troop name</Label>
-                  <Input id="troopName" placeholder="e.g., Troop 42" value={troopName} onChange={(e) => setTroopName(e.target.value)} />
+                  <Label htmlFor="troopName">{groupUnitCap} name</Label>
+                  <Input id="troopName" placeholder={`e.g., ${groupUnitCap} A`} value={troopName} onChange={(e) => setTroopName(e.target.value)} />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="troopCode">Choose a troop code</Label>
+                  <Label htmlFor="troopCode">Choose a {groupCodeLabel}</Label>
                   <Input
                     id="troopCode"
-                    placeholder="e.g., GS-TROOP42"
+                    placeholder="e.g., GROUP42"
                     value={troopCode}
                     onChange={(e) => setTroopCode(e.target.value.toUpperCase())}
                   />
-                  <p className="text-xs text-muted-foreground break-words">Scouts use this code to log in. You can also use your council's official troop number.</p>
+                  <p className="text-xs text-muted-foreground break-words">
+                    {youthLabelCap} use this code to log in. Use the code your program already recognizes if you have one.
+                  </p>
                 </div>
                 <Button type="submit" className="w-full" disabled={creatingTroop}>
-                  {creatingTroop ? "Creating…" : "Create troop"}
+                  {creatingTroop ? "Creating…" : `Create ${groupUnitLabel}`}
                 </Button>
               </form>
             </CardContent>
           </Card>
         )}
 
-        {/* ── Add scout ────────────────────────────────────────────────── */}
+        {/* ── Add youth ────────────────────────────────────────────────── */}
         {!loading && view === "add_scout" && (
           <Card className="mx-auto w-full max-w-xl border-0 shadow-sm">
             <CardHeader>
-              <CardTitle className="text-lg font-serif">Add a scout</CardTitle>
+              <CardTitle className="text-lg font-serif">Add a {youthLabel}</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleAddScout} className="space-y-4">
                 <div className="space-y-1">
                   <Label htmlFor="scoutNickname">Nickname</Label>
-                  <Input id="scoutNickname" placeholder="Scout's nickname" value={scoutNickname} onChange={(e) => setScoutNickname(e.target.value)} />
+                  <Input id="scoutNickname" placeholder={`${youthLabelCap}'s nickname`} value={scoutNickname} onChange={(e) => setScoutNickname(e.target.value)} />
                   <p className="text-xs text-muted-foreground">No last names needed — this is what they'll see in the app.</p>
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="scoutPin">Set a PIN (4–6 digits)</Label>
                   <Input id="scoutPin" type="password" inputMode="numeric" maxLength={6} placeholder="••••" value={scoutPin} onChange={(e) => setScoutPin(e.target.value.replace(/\D/g, ''))} />
-                  <p className="text-xs text-muted-foreground">Share this PIN with the scout directly — not over chat.</p>
+                  <p className="text-xs text-muted-foreground">Share this PIN with the {youthLabel} directly — not over chat.</p>
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="scoutBadge">Badge focus</Label>
+                  <Label htmlFor="scoutBadge">{credentialLabelCap} focus</Label>
                   <select
                     id="scoutBadge"
                     className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -656,7 +665,7 @@ export const LeaderDashboardPage = () => {
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Button variant="outline" className="flex-1" type="button" onClick={() => setView("dashboard")}>Cancel</Button>
                   <Button type="submit" className="flex-1" disabled={addingScout}>
-                    {addingScout ? "Adding…" : "Add scout"}
+                    {addingScout ? "Adding…" : `Add ${youthLabel}`}
                   </Button>
                 </div>
               </form>
@@ -670,7 +679,7 @@ export const LeaderDashboardPage = () => {
                 <div>
                   <h2 className="font-serif text-lg text-foreground">Recognize progress</h2>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Every entry is hashed and permanently recorded — Bronze, Silver, and Gold awards become independently verifiable credentials that transfer if a girl moves to a new troop.
+                    Every entry is recorded as a portable recognition that can follow a young person if they move to another program group.
                   </p>
             </div>
 
@@ -709,15 +718,15 @@ export const LeaderDashboardPage = () => {
               </button>
             </div>
 
-            {/* Scout selector */}
+            {/* Youth selector */}
             <div className="space-y-1">
-              <Label>Scout</Label>
+              <Label>{youthLabelCap}</Label>
               <select
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 value={credentialScoutId}
                 onChange={(e) => setCredentialScoutId(e.target.value)}
               >
-                <option value="">Select a scout…</option>
+                <option value="">Select {youthLabel}…</option>
                 {allScouts.map((s) => (
                   <option key={s.id} value={s.id}>{s.nickname}</option>
                 ))}
@@ -1097,7 +1106,7 @@ export const LeaderDashboardPage = () => {
                 <div>
                   <h2 className="font-serif text-lg text-foreground break-words">{scoutRecord.nickname}</h2>
                   <p className="text-xs text-muted-foreground">
-                    Troop <span className="font-mono">{scoutRecord.troopCode}</span> · {scoutRecord.credentials.length} credentials
+                    {groupCodeCap} <span className="font-mono">{scoutRecord.troopCode}</span> · {scoutRecord.credentials.length} credentials
                   </p>
                 </div>
 
@@ -1106,7 +1115,7 @@ export const LeaderDashboardPage = () => {
                     <div className="flex items-start gap-2">
                       <Shield className="w-4 h-4 text-accent mt-0.5 shrink-0" />
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        This record is portable. If {scoutRecord.nickname} transfers to another troop, every credential here — including awards and service hours — moves with her and remains independently verifiable.
+                        This record is portable. If {scoutRecord.nickname} transfers to another {groupUnitLabel}, every recognition here — including awards and service hours — moves with them and remains independently verifiable.
                       </p>
                     </div>
                   </CardContent>
@@ -1180,16 +1189,23 @@ export const LeaderDashboardPage = () => {
               </div>
               </div>
 
-              <div className="grid gap-3 xl:grid-cols-[1.2fr_0.8fr_0.8fr]">
-                <div className="leader-geo-panel p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Search className="w-4 h-4" />
-                      <span>{orgTerms.queueSearchLabel}</span>
+              <div className="grid items-start gap-3 xl:grid-cols-12">
+                <div className="leader-geo-panel min-w-0 overflow-hidden p-4 xl:col-span-8">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div className="flex min-w-0 items-start gap-3 text-sm text-muted-foreground">
+                      <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-border bg-background/70">
+                        <Search className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <span className="block font-medium text-foreground">{orgTerms.queueSearchLabel}</span>
+                        <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
+                          Narrow the queue before opening individual support views.
+                        </span>
+                      </div>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                        <Button variant="outline" size="sm" className="w-full shrink-0 md:w-auto">
                           <Download className="mr-2 h-4 w-4" />
                           Export report
                         </Button>
@@ -1201,16 +1217,17 @@ export const LeaderDashboardPage = () => {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                  <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_auto_auto]">
+                  <div className="mt-4 grid min-w-0 gap-3 md:grid-cols-3">
                     <Input
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder={orgTerms.searchPlaceholder}
+                      className="min-w-0"
                     />
                     <select
                       value={queueFilter}
                       onChange={(e) => setQueueFilter(e.target.value as QueueFilter)}
-                      className="min-h-11 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      className="min-h-11 min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm"
                     >
                       <option value="needs_attention">Needs attention</option>
                       <option value="follow_up_due">Follow-up due</option>
@@ -1221,7 +1238,7 @@ export const LeaderDashboardPage = () => {
                     <select
                       value={queueSort}
                       onChange={(e) => setQueueSort(e.target.value as QueueSort)}
-                      className="min-h-11 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      className="min-h-11 min-w-0 rounded-md border border-input bg-background px-3 py-2 text-sm"
                     >
                       <option value="urgency">Sort by urgency</option>
                       <option value="inactivity">Sort by inactivity</option>
@@ -1231,52 +1248,28 @@ export const LeaderDashboardPage = () => {
                   </div>
                 </div>
 
-                <div className="leader-geo-panel p-4">
+                <div className="leader-geo-panel min-w-0 p-4 xl:col-span-4">
                   <p className="eyebrow">{orgTerms.queueCollectionLabel === "caseload" ? "Caseload summary" : "Support summary"}</p>
-                  <div className="mt-3 space-y-2 text-sm">
-                    <p className="text-foreground">{dashboard.caseloadSummary?.needsAttentionNow || 0} {orgTerms.youthPlural} need attention today</p>
-                    <p className="text-foreground">{dashboard.caseloadSummary?.followUpsOverdue || 0} follow-ups are overdue</p>
-                    <p className="text-foreground">{dashboard.caseloadSummary?.onTrackThisWeek || 0} are on track this week</p>
-                    <p className="text-foreground">{dashboard.caseloadSummary?.stalledProgress || 0} may need a reset in progress</p>
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <div className="leader-geo-subcard rounded-2xl border border-border px-3 py-3">
+                      <p className="text-2xl font-semibold text-foreground">{dashboard.caseloadSummary?.needsAttentionNow || 0}</p>
+                      <p className="mt-1 text-xs leading-snug text-muted-foreground">{orgTerms.youthPlural} need attention</p>
+                    </div>
+                    <div className="leader-geo-subcard rounded-2xl border border-border px-3 py-3">
+                      <p className="text-2xl font-semibold text-foreground">{dashboard.caseloadSummary?.followUpsOverdue || 0}</p>
+                      <p className="mt-1 text-xs leading-snug text-muted-foreground">follow-ups overdue</p>
+                    </div>
+                    <div className="leader-geo-subcard rounded-2xl border border-border px-3 py-3">
+                      <p className="text-2xl font-semibold text-foreground">{dashboard.caseloadSummary?.onTrackThisWeek || 0}</p>
+                      <p className="mt-1 text-xs leading-snug text-muted-foreground">on track this week</p>
+                    </div>
+                    <div className="leader-geo-subcard rounded-2xl border border-border px-3 py-3">
+                      <p className="text-2xl font-semibold text-foreground">{dashboard.caseloadSummary?.stalledProgress || 0}</p>
+                      <p className="mt-1 text-xs leading-snug text-muted-foreground">progress resets</p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="leader-geo-panel p-4">
-                  <div className="flex items-center gap-2">
-                    <Gift className="h-4 w-4 text-accent" />
-                    <p className="eyebrow">Recognition snapshot</p>
-                  </div>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                    <div className="leader-geo-subcard rounded-xl border border-border px-3 py-3">
-                      <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Issued this week</p>
-                      <p className="mt-2 text-lg font-semibold text-foreground">{dashboard.recognitionSnapshot?.rewardsIssuedThisWeek || 0}</p>
-                    </div>
-                    <div className="leader-geo-subcard rounded-xl border border-border px-3 py-3">
-                      <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">{orgTerms.recognitionSubjectPlural}</p>
-                      <p className="mt-2 text-lg font-semibold text-foreground">{dashboard.recognitionSnapshot?.youthRecognizedThisWeek || 0}</p>
-                    </div>
-                    <div className="leader-geo-subcard rounded-xl border border-border px-3 py-3">
-                      <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Service hours</p>
-                      <p className="mt-2 text-lg font-semibold text-foreground">{dashboard.recognitionSnapshot?.serviceHoursLoggedThisWeek || 0}</p>
-                    </div>
-                    <div className="leader-geo-subcard rounded-xl border border-border px-3 py-3">
-                      <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Marks earned</p>
-                      <p className="mt-2 text-lg font-semibold text-foreground">{dashboard.recognitionSnapshot?.marksEarnedThisWeek || 0}</p>
-                    </div>
-                  </div>
-                  {(dashboard.recognitionSnapshot?.recentRecognitions.length || 0) > 0 && (
-                    <div className="mt-3 space-y-2">
-                      {dashboard.recognitionSnapshot!.recentRecognitions.slice(0, 2).map((item) => (
-                        <div key={item.id} className="leader-geo-subcard rounded-xl border border-border px-3 py-3">
-                          <p className="text-sm font-medium text-foreground break-words">{item.youthName}</p>
-                          <p className="mt-1 text-xs text-muted-foreground break-words">
-                            {item.title} · {new Date(item.earnedAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
 
@@ -1346,6 +1339,50 @@ export const LeaderDashboardPage = () => {
                       )}
                     </div>
                   ))
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="leader-geo-panel border-0 shadow-none">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Gift className="h-4 w-4 text-accent" />
+                  Recognition snapshot
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Use recognition after the support queue to reinforce progress, completions, service, and consistency.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="leader-geo-subcard rounded-xl border border-border px-3 py-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Issued this week</p>
+                    <p className="mt-2 text-lg font-semibold text-foreground">{dashboard.recognitionSnapshot?.rewardsIssuedThisWeek || 0}</p>
+                  </div>
+                  <div className="leader-geo-subcard rounded-xl border border-border px-3 py-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">{orgTerms.recognitionSubjectPlural}</p>
+                    <p className="mt-2 text-lg font-semibold text-foreground">{dashboard.recognitionSnapshot?.youthRecognizedThisWeek || 0}</p>
+                  </div>
+                  <div className="leader-geo-subcard rounded-xl border border-border px-3 py-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Service hours</p>
+                    <p className="mt-2 text-lg font-semibold text-foreground">{dashboard.recognitionSnapshot?.serviceHoursLoggedThisWeek || 0}</p>
+                  </div>
+                  <div className="leader-geo-subcard rounded-xl border border-border px-3 py-3">
+                    <p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">Marks earned</p>
+                    <p className="mt-2 text-lg font-semibold text-foreground">{dashboard.recognitionSnapshot?.marksEarnedThisWeek || 0}</p>
+                  </div>
+                </div>
+                {(dashboard.recognitionSnapshot?.recentRecognitions.length || 0) > 0 && (
+                  <div className="grid gap-2 md:grid-cols-2">
+                    {dashboard.recognitionSnapshot!.recentRecognitions.slice(0, 2).map((item) => (
+                      <div key={item.id} className="leader-geo-subcard rounded-xl border border-border px-3 py-3">
+                        <p className="text-sm font-medium text-foreground break-words">{item.youthName}</p>
+                        <p className="mt-1 text-xs text-muted-foreground break-words">
+                          {item.title} · {new Date(item.earnedAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -1473,14 +1510,28 @@ export const LeaderDashboardPage = () => {
                   <CardContent>
                     <ChartContainer
                       config={{ total: { label: orgTerms.youthPlural, color: "hsl(var(--foreground))" } }}
-                      className="aspect-[16/9] w-full"
+                      className="h-64 w-full"
                     >
-                      <BarChart data={caseloadStatusChartData}>
-                        <CartesianGrid vertical={false} />
-                        <XAxis dataKey="status" tickLine={false} axisLine={false} interval={0} angle={-12} textAnchor="end" height={52} />
-                        <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={28} />
+                      <BarChart
+                        data={caseloadStatusChartData}
+                        layout="vertical"
+                        margin={{ top: 8, right: 28, bottom: 8, left: 4 }}
+                        barCategoryGap={16}
+                      >
+                        <CartesianGrid horizontal={false} />
+                        <XAxis type="number" hide allowDecimals={false} />
+                        <YAxis
+                          dataKey="status"
+                          type="category"
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
+                          width={104}
+                        />
                         <ChartTooltip content={<ChartTooltipContent />} />
-                        <Bar dataKey="total" fill="var(--color-total)" radius={[8, 8, 0, 0]} />
+                        <Bar dataKey="total" fill="var(--color-total)" radius={[0, 8, 8, 0]}>
+                          <LabelList dataKey="total" position="right" className="fill-muted-foreground text-xs" />
+                        </Bar>
                       </BarChart>
                     </ChartContainer>
                   </CardContent>
@@ -1609,11 +1660,11 @@ export const LeaderDashboardPage = () => {
           </>
         )}
 
-        {/* No troop */}
+        {/* No group */}
         {!loading && view === "dashboard" && !dashboard && (
           <div className="text-center py-12 space-y-3">
-            <p className="text-muted-foreground text-sm">No troop set up yet.</p>
-            <Button onClick={() => setView("create_troop")}>Create your troop</Button>
+            <p className="text-muted-foreground text-sm">No {groupUnitLabel} set up yet.</p>
+            <Button onClick={() => setView("create_troop")}>Create your {groupUnitLabel}</Button>
           </div>
         )}
 

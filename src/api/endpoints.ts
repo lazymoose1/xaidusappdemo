@@ -144,6 +144,16 @@ export const notificationsApi = {
   getAll: () => apiFetch<ApiNotificationsResponse>('/api/notifications'),
 };
 
+export const feedbackApi = {
+  submit: (data: {
+    category: 'bug' | 'confusing' | 'idea' | 'praise' | 'safety' | 'other';
+    sentiment?: 'blocked' | 'frustrated' | 'neutral' | 'happy';
+    message: string;
+    page?: string;
+    contactAllowed?: boolean;
+  }) => apiFetch<{ id: string; received: boolean }>('/api/feedback', { method: 'POST', body: JSON.stringify(data) }),
+};
+
 export const forumsApi = {
   listPosts: (search?: string, category?: string) => {
     const params = new URLSearchParams();

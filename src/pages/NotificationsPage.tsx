@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, MessageSquare, Users, ArrowRight, RefreshCw } from "lucide-react";
+import { Bell, MessageSquare, Trophy, Users, ArrowRight, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { notificationsApi } from "@/api/endpoints";
 import type { NotificationItem } from "@/types/api";
@@ -30,6 +30,10 @@ const TYPE_CONFIG: Record<NotificationItem["type"], { icon: React.ReactNode; acc
   forum_reply: {
     icon: <Users className="w-4 h-4 text-foreground" />,
     accent: "border-white/12 bg-white/[0.04]",
+  },
+  goal_win: {
+    icon: <Trophy className="w-4 h-4 text-foreground" />,
+    accent: "border-amber-400/30 bg-amber-400/10",
   },
 };
 

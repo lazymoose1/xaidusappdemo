@@ -28,6 +28,7 @@ const TeenHomeView = ({
   const totalPlanned = goals.reduce((sum, goal) => sum + (goal.plannedCount || 0), 0);
   const totalCompleted = goals.reduce((sum, goal) => sum + (goal.completedThisWeek || 0), 0);
   const primaryGoal = goals.find((goal) => !(goal.lastCheckin?.date && new Date(goal.lastCheckin.date).toDateString() === new Date().toDateString())) ?? goals[0];
+  const primaryGoalCheckedIn = Boolean(primaryGoal?.lastCheckin?.date && new Date(primaryGoal.lastCheckin.date).toDateString() === new Date().toDateString());
   const todayKey = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][new Date().getDay()];
   const nextPlannedDay = (() => {
     if (!primaryGoal?.plannedDays) return null;
@@ -51,24 +52,24 @@ const TeenHomeView = ({
   const checkedInToday = goals.filter((goal) => goal.lastCheckin?.date && new Date(goal.lastCheckin.date).toDateString() === new Date().toDateString()).length;
   const loopTitle =
     primaryAction === "CREATE_TODAY_GOAL"
-      ? "Let's create today's goal"
+      ? "🎯 Let's create today's goal"
       : primaryAction === "START_WEEKLY_RESET"
-      ? "Start this week's plan"
+      ? "🗓️ Start this week's plan"
       : primaryAction === "CHECK_IN"
-      ? "Today's check-in is ready"
+      ? "✅ Today's check-in is ready"
       : primaryAction === "DO_NEXT_STEP"
-      ? "Your next step is ready"
-      : "You're caught up for now";
+      ? "⚡ Your next step is ready"
+      : "🌟 You're caught up for now";
   const loopCopy =
     primaryAction === "CREATE_TODAY_GOAL"
-      ? "Start with one goal for today. TINY will help shape it into something small and real."
+      ? "Start with one goal for today. TINY will help shape it into something small, real, and actually doable."
       : primaryAction === "START_WEEKLY_RESET"
       ? "Reset the week first so today's effort lands in the right place."
       : primaryAction === "CHECK_IN"
-      ? "Use today's focus right below to log the 10-second daily pulse."
+      ? "Use the current goal right below TINY, then log the 10-second daily pulse."
       : primaryAction === "DO_NEXT_STEP"
-      ? "You already have a next step. Do it, then check in right below."
-      : "You finished the main loop. Review your rhythm, then leave with clarity.";
+      ? "You already have a next step. Do the small thing, then check in right below."
+      : "You finished the main loop. Review your rhythm, collect the win, then leave with clarity.";
 
   return (
     <div className="w-full max-w-2xl px-4 space-y-5">
@@ -79,7 +80,7 @@ const TeenHomeView = ({
       >
         <div className="text-center">
           <p className="eyebrow">
-            Start here
+            Today's next move ✨
           </p>
           <h3 className="display-title text-[2rem] sm:text-[2.5rem] font-semibold text-foreground mt-2 break-words">
             {loopTitle}
@@ -96,11 +97,33 @@ const TeenHomeView = ({
           onAddGoalClick={onAddGoalClick}
         />
 
-        {goals.length === 0 && (
+        {primaryGoal ? (
+          <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.045] p-4 space-y-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <p className="eyebrow">
+                  🎯 Current goal
+                </p>
+                <h4 className="display-title text-xl sm:text-2xl font-semibold text-foreground mt-2 break-words">
+                  {primaryGoal.title}
+                </h4>
+                <p className="text-sm text-muted-foreground mt-2 break-words">
+                  {primaryGoal.microStep || "Pick one tiny step you can do today, then check in when it is done."}
+                </p>
+              </div>
+              <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs font-semibold text-foreground self-start">
+                {primaryGoalCheckedIn ? "✅ checked in" : "⏳ ready"}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground break-words">
+              Tiny loop: ask TINY → do the small step → check in → earn the win.
+            </p>
+          </div>
+        ) : (
           <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.04] p-4 space-y-2">
             <div className="min-w-0">
               <p className="eyebrow">
-                Next step
+                🎯 Next step
               </p>
               <h4 className="display-title text-xl font-semibold text-foreground mt-2 break-words">
                 Add 1 goal day so you can check in today.
@@ -120,14 +143,14 @@ const TeenHomeView = ({
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <div className="min-w-0">
               <p className="eyebrow">
-                Weekly progress
+                📈 Weekly progress
               </p>
               <h3 className="display-title text-xl sm:text-2xl font-semibold text-foreground mt-2 break-words">
                 {totalPlanned > 0 ? `${totalCompleted}/${totalPlanned} wins this week` : "Start with 1 planned day this week"}
               </h3>
               <p className="text-sm text-muted-foreground mt-2 leading-relaxed break-words">
                 {totalPlanned > 0
-                  ? "Keep the loop small: ask TINY, check in once, and confirm your next day."
+                  ? "Keep the loop small: ask TINY, check in once, and confirm your next day. Small wins stack."
                   : "Set up one check-in day, ask TINY for the smallest step, and keep your week moving."}
               </p>
             </div>
@@ -139,19 +162,19 @@ const TeenHomeView = ({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div className="rounded-[1.1rem] bg-black/20 border border-white/10 px-3 py-3 min-w-0">
               <p className="eyebrow">
-                Wins this week
+                🏆 Wins this week
               </p>
               <p className="text-lg sm:text-xl font-semibold text-foreground mt-2 break-words">{totalCompleted}</p>
             </div>
             <div className="rounded-[1.1rem] bg-black/20 border border-white/10 px-3 py-3 min-w-0">
               <p className="eyebrow">
-                Checked in today
+                ✅ Checked in today
               </p>
               <p className="text-lg sm:text-xl font-semibold text-foreground mt-2 break-words">{checkedInToday}</p>
             </div>
             <div className="rounded-[1.1rem] bg-black/20 border border-white/10 px-3 py-3 min-w-0">
               <p className="eyebrow">
-                Next planned day
+                🗓️ Next planned day
               </p>
               <p className="text-lg sm:text-xl font-semibold text-foreground mt-2 break-words">{nextPlannedDay || "Set a day"}</p>
             </div>
@@ -163,7 +186,7 @@ const TeenHomeView = ({
             className="rounded-[1.1rem] bg-black/20 border border-white/10 px-3 py-3 min-w-0"
           >
             <p className="eyebrow">
-              Next step
+              ⚡ Tiny next step
             </p>
             <p className="text-sm text-foreground mt-2 break-words">
               {primaryGoal?.microStep || "Next step: create today's goal so TINY can give you one small action to take."}
@@ -180,7 +203,7 @@ const TeenHomeView = ({
             }}
             className="w-full min-h-11 h-auto px-4 py-3 text-sm sm:text-base whitespace-normal break-words"
           >
-            {goals.length === 0 ? "Create your first goal" : "Add or adjust a goal"}
+            {goals.length === 0 ? "🎯 Create your first goal" : "🛠️ Add or adjust a goal"}
           </Button>
           <button
             onClick={() => {
@@ -189,7 +212,7 @@ const TeenHomeView = ({
             }}
             className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
           >
-            Community update
+            💬 Community update
           </button>
         </div>
       </div>
@@ -197,7 +220,7 @@ const TeenHomeView = ({
       <div className="surface-panel p-4 sm:p-5 space-y-3 bg-white/[0.02]">
         <div>
           <p className="eyebrow">
-            You're building
+            🧬 You're building
           </p>
           <p className="text-sm text-muted-foreground mt-2 break-words">
             Progress traits update as you keep showing up.

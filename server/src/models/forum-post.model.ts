@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-export type ForumCategory = 'Help' | 'Ideas' | 'General' | 'Tips' | 'Announcement';
+export type ForumCategory = 'Wins' | 'Help' | 'Ideas' | 'General' | 'Tips' | 'Announcement';
 
 export interface IForumPost extends Document {
   title: string;
@@ -22,7 +22,7 @@ const forumPostSchema = new Schema<IForumPost>(
     body: { type: String, required: true, maxlength: 10000 },
     category: {
       type: String,
-      enum: ['Help', 'Ideas', 'General', 'Tips', 'Announcement'],
+      enum: ['Wins', 'Help', 'Ideas', 'General', 'Tips', 'Announcement'],
       default: 'General',
     },
     author_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },

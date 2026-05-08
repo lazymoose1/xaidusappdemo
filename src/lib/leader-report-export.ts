@@ -45,12 +45,53 @@ function downloadBlob(filename: string, blob: Blob) {
 }
 
 function buildSections(dashboard: TroopDashboard, supportProfile?: LeaderSupportProfile | null): ReportSection[] {
+  if (supportProfile) {
+    const sections: ReportSection[] = [
+      {
+        title: "Individual Support Detail",
+        rows: [
+          ["Individual", supportProfile.scout.nickname],
+          ["Group", supportProfile.scout.cohortCode || "General group"],
+          ["Support status", supportProfile.summary.supportStatus.replace(/_/g, " ")],
+          ["Last check-in", supportProfile.summary.lastCheckInLabel],
+          ["Check-ins this week", String(supportProfile.summary.daysCheckedInThisWeek)],
+          ["Active goals", String(supportProfile.summary.activeGoalCount)],
+          ["Completed this week", String(supportProfile.summary.completedThisWeek)],
+          ["Recognitions on record", String(supportProfile.recognition.totalCredentials)],
+          ["Service hours on record", String(supportProfile.recognition.serviceHoursLogged)],
+        ],
+      },
+    ];
+
+    if (supportProfile.activeGoals.length > 0) {
+      sections.push({
+        title: "Active Goals",
+        rows: supportProfile.activeGoals.map((goal) => [
+          goal.title,
+          `${goal.status.replace(/_/g, " ")}. Progress ${goal.progress}%. ${goal.checkinsThisWeek} check-ins this week.`,
+        ]),
+      });
+    }
+
+    if (supportProfile.supportNotes.length > 0) {
+      sections.push({
+        title: "Support Notes and Follow-up",
+        rows: supportProfile.supportNotes.map((note) => [
+          formatDate(note.createdAt),
+          `${note.note}${note.nextStep ? ` Next step: ${note.nextStep}.` : ""}`,
+        ]),
+      });
+    }
+
+    return sections;
+  }
+
   const sections: ReportSection[] = [
     {
-      title: "Program Summary",
+      title: "Support Workspace Summary",
       rows: [
         ["Program", dashboard.troop.name],
-        ["Troop code", dashboard.troop.troopCode],
+        ["Group code", dashboard.troop.troopCode],
         ["Youth served", String(dashboard.totalScouts)],
         ["Need support now", String(dashboard.caseloadSummary?.needsAttentionNow || 0)],
         ["Follow-ups overdue", String(dashboard.caseloadSummary?.followUpsOverdue || 0)],
@@ -90,7 +131,7 @@ function buildSections(dashboard: TroopDashboard, supportProfile?: LeaderSupport
 
   if ((dashboard.caseloadQueue || []).length > 0) {
     sections.push({
-      title: "Caseload Priority Queue",
+      title: "Support Priority Queue",
       rows: dashboard.caseloadQueue!.slice(0, 15).map((item) => [
         item.youthName,
         `${item.reason}. Last check-in: ${item.lastCheckInLabel}. ${item.currentGoalStatus}. ${
@@ -128,32 +169,6 @@ function buildSections(dashboard: TroopDashboard, supportProfile?: LeaderSupport
         `${formatDate(item.createdAt)} - ${item.note}`,
       ]),
     });
-  }
-
-  if (supportProfile) {
-    sections.push({
-      title: "Youth Support Detail",
-      rows: [
-        ["Youth", supportProfile.scout.nickname],
-        ["Group", supportProfile.scout.cohortCode || "General group"],
-        ["Support status", supportProfile.summary.supportStatus.replace(/_/g, " ")],
-        ["Check-ins this week", String(supportProfile.summary.daysCheckedInThisWeek)],
-        ["Active goals", String(supportProfile.summary.activeGoalCount)],
-        ["Completed this week", String(supportProfile.summary.completedThisWeek)],
-        ["Recognitions on record", String(supportProfile.recognition.totalCredentials)],
-        ["Service hours on record", String(supportProfile.recognition.serviceHoursLogged)],
-      ],
-    });
-
-    if (supportProfile.supportNotes.length > 0) {
-      sections.push({
-        title: "Support Notes",
-        rows: supportProfile.supportNotes.map((note) => [
-          formatDate(note.createdAt),
-          `${note.note}${note.nextStep ? ` Next step: ${note.nextStep}.` : ""}`,
-        ]),
-      });
-    }
   }
 
   return sections;
@@ -277,8 +292,14 @@ function buildPdf(title: string, dashboard: TroopDashboard, supportProfile?: Lea
 }
 
 export function exportLeaderReport(format: ExportFormat, dashboard: TroopDashboard, supportProfile?: LeaderSupportProfile | null) {
-  const baseName = `${slugify(dashboard.troop.name)}-support-report-${new Date().toISOString().slice(0, 10)}`;
-  const title = `${dashboard.troop.name} youth support report`;
+  const date = new Date().toISOString().slice(0, 10);
+  const subjectName = supportProfile?.scout.nickname;
+  const baseName = subjectName
+    ? `xaidus-${slugify(subjectName)}-individual-support-${date}`
+    : `xaidus-${slugify(dashboard.troop.name)}-workspace-summary-${date}`;
+  const title = subjectName
+    ? `${subjectName} individual support report`
+    : `${dashboard.troop.name} support workspace summary`;
 
   if (format === "excel") {
     const html = buildHtmlReport(title, dashboard, supportProfile);

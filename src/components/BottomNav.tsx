@@ -1,4 +1,4 @@
-import { Bell, Compass, Home, LayoutGrid, MessageSquare, Search, Settings, Users } from "lucide-react";
+import { Bell, Compass, Home, LayoutGrid, MessageSquare, MessageSquareHeart, Search, Settings, Sparkles, Users } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/providers/AuthProvider";
 import { useMemo, useState } from "react";
@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import FeedbackDialog from "@/components/FeedbackDialog";
 
 const BottomNav = () => {
   const location = useLocation();
@@ -18,6 +19,7 @@ const BottomNav = () => {
   const role = user?.role || 'teen';
   const orgTerms = getOrganizationTerms(user?.organizationType);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const navItems = useMemo(() => {
     if (role === "scout_leader") {
@@ -48,6 +50,7 @@ const BottomNav = () => {
 
   const moreLinks = useMemo(() => {
     const base = [
+      { path: "/explore", label: "Explore", icon: Sparkles, description: "Share goal wins and reflect on what others achieved." },
       { path: "/search", label: "Search", icon: Search, description: "Browse people, goals, and ideas." },
       { path: "/forums", label: "Forums", icon: Users, description: "Community conversations and questions." },
       { path: "/messages", label: "Messages", icon: MessageSquare, description: "Direct conversations and group threads." },
@@ -138,6 +141,22 @@ const BottomNav = () => {
           </DialogHeader>
 
           <div className="space-y-2">
+            <button
+              onClick={() => {
+                setMoreOpen(false);
+                setFeedbackOpen(true);
+              }}
+              className="w-full rounded-[1.25rem] border border-accent/20 bg-accent/10 px-4 py-3 text-left hover:bg-accent/15 transition-colors"
+            >
+              <div className="flex items-start gap-3 min-w-0">
+                <MessageSquareHeart className="w-4 h-4 text-foreground" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground break-words">Share feedback</p>
+                  <p className="text-xs text-muted-foreground break-words">Report a bug, confusing moment, safety concern, or product idea.</p>
+                </div>
+              </div>
+            </button>
+
             {moreLinks.map((link) => (
               <button
                 key={link.path}
@@ -159,6 +178,8 @@ const BottomNav = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
     </>
   );
 };

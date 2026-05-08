@@ -39,7 +39,7 @@ const TodayGoalsCard = ({ todayGoals, loading, primaryAction, onCheckin, onRefre
         <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <p className="eyebrow">After TINY</p>
-            <h3 className="display-title text-[1.9rem] sm:text-[2.3rem] font-semibold text-foreground break-words">Today's focus</h3>
+            <h3 className="display-title text-[1.9rem] sm:text-[2.3rem] font-semibold text-foreground break-words">✅ Check in</h3>
             <p className="text-sm text-muted-foreground break-words mt-2 leading-relaxed">{helperCopy}</p>
           </div>
           <Button variant="ghost" size="sm" onClick={onRefresh} disabled={loading} className="self-start sm:self-auto">
@@ -89,7 +89,7 @@ const TodayGoalsCard = ({ todayGoals, loading, primaryAction, onCheckin, onRefre
                     <div className="flex items-center gap-2">
                       {checkedIn && <CheckCircle2 className="w-4 h-4 text-white flex-shrink-0" />}
                       <span className="eyebrow">
-                        Current goal
+                        🎯 Current goal
                       </span>
                     </div>
                     <p className="display-title text-xl sm:text-2xl font-semibold text-foreground break-words">
@@ -126,7 +126,7 @@ const TodayGoalsCard = ({ todayGoals, loading, primaryAction, onCheckin, onRefre
                         className="flex-1 min-h-10 h-auto whitespace-normal"
                         onClick={() => onCheckin(primaryGoal.id, "yes")}
                       >
-                        Check in
+                      Check in
                       </Button>
                     </div>
                   )}

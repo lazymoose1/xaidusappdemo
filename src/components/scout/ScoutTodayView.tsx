@@ -87,6 +87,24 @@ export const ScoutTodayView = () => {
       </header>
 
       <div className="max-w-lg mx-auto px-4 pt-6 space-y-5">
+        {/* Check-in cards for today's goals */}
+        {data.goals.length > 0 ? (
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Today's next move ✨</p>
+              <h2 className="text-xl font-semibold text-foreground mt-1">Check in first</h2>
+              <p className="text-sm text-muted-foreground mt-1">Do the small step, log it, then collect the progress.</p>
+            </div>
+            {data.goals.map((goal) => (
+              <ScoutCheckinCard key={goal.id} goal={goal} onCheckin={fetchToday} />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-border p-6 text-center space-y-2">
+            <p className="text-muted-foreground text-sm">No goals scheduled for today.</p>
+            <p className="text-xs text-muted-foreground">Your support leader may set up a new week during your next meeting.</p>
+          </div>
+        )}
 
         {/* Streak + weekly stats */}
         <div className="grid grid-cols-2 gap-3">
@@ -191,21 +209,6 @@ export const ScoutTodayView = () => {
                 }
               />
             ))}
-          </div>
-        )}
-
-        {/* Check-in cards for today's goals */}
-        {data.goals.length > 0 ? (
-          <div className="space-y-3">
-            <h2 className="text-sm font-semibold text-foreground">Check in</h2>
-            {data.goals.map((goal) => (
-              <ScoutCheckinCard key={goal.id} goal={goal} onCheckin={fetchToday} />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-2xl border border-dashed border-border p-6 text-center space-y-2">
-            <p className="text-muted-foreground text-sm">No goals scheduled for today.</p>
-            <p className="text-xs text-muted-foreground">Your leader may set up a new week during your next meeting.</p>
           </div>
         )}
 

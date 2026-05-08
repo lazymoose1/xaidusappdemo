@@ -74,14 +74,15 @@ export function useIndexData() {
             ? "Nice--effort counts."
             : "Logged for today.",
         });
-        fetchTodayGoals();
-        fetchUserData();
+        await Promise.all([fetchTodayGoals(), fetchUserData()]);
+        return response;
       } catch (err) {
         toast({
           title: "Check-in failed",
           description: err instanceof Error ? err.message : "Please try again.",
           variant: "destructive",
         });
+        throw err;
       }
     },
     [fetchTodayGoals, fetchUserData]

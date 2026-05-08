@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
-import { ScoutNudge, Thread, ForumPost, ForumReply } from '../models';
+import { Goal, ParentChildLink, ScoutNudge, Thread, ForumPost, ForumReply, Troop, User } from '../models';
 
 export interface NotificationItem {
   id: string;
-  type: 'nudge' | 'thread_message' | 'forum_reply';
+  type: 'nudge' | 'thread_message' | 'forum_reply' | 'goal_win';
   title: string;
   body: string;
   linkTo: string;
@@ -20,6 +20,52 @@ export async function getNotifications(req: Request, res: Response, next: NextFu
     const userId = req.user.id;
     const userObjId = new mongoose.Types.ObjectId(userId);
     const items: NotificationItem[] = [];
+
+    const addGoalWinNotifications = async () => {
+      const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+      let watchedYouthIds: mongoose.Types.ObjectId[] = [];
+
+      if (req.user?.role === 'parent') {
+        const links = await ParentChildLink.find({ parent_id: userObjId }).select('child_id').lean();
+        watchedYouthIds = links.map((link) => link.child_id as mongoose.Types.ObjectId);
+      } else if (req.user?.role === 'scout_leader') {
+        const troops = await Troop.find({ leader_id: userObjId }).select('member_ids').lean();
+        watchedYouthIds = troops.flatMap((troop) => (troop.member_ids || []) as mongoose.Types.ObjectId[]);
+      }
+
+      if (watchedYouthIds.length === 0) return;
+
+      const goals = await Goal.find({
+        user_id: { $in: watchedYouthIds },
+        completed: true,
+        completed_at: { $gte: since },
+      })
+        .sort({ completed_at: -1 })
+        .limit(12)
+        .lean();
+
+      if (goals.length === 0) return;
+
+      const users = await User.find({ _id: { $in: goals.map((goal) => goal.user_id) } })
+        .select('display_name')
+        .lean();
+      const names = new Map(users.map((user) => [(user._id as any).toString(), user.display_name || 'A youth']));
+
+      for (const goal of goals) {
+        const youthName = names.get((goal.user_id as any).toString()) || 'A youth';
+        items.push({
+          id: `goal-win-${(goal._id as any).toString()}`,
+          type: 'goal_win',
+          title: `${youthName} completed a goal`,
+          body: goal.title || 'A goal was completed.',
+          linkTo: req.user?.role === 'scout_leader' ? '/leader' : '/parent-portal',
+          createdAt: goal.completed_at || goal.updated_at || goal.created_at,
+          read: false,
+        });
+      }
+    };
+
+    await addGoalWinNotifications();
 
     // 1. Scout nudges (unacknowledged leader_nudge sent to this user)
     const nudges = await ScoutNudge.find({
