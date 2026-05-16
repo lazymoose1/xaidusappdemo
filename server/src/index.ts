@@ -112,8 +112,17 @@ app.get('/health', (_req, res) => {
 });
 
 app.get('/debug/cors', (req, res) => {
-  if (env.NODE_ENV === 'production' && req.headers['x-api-key'] !== env.SYSTEM_API_KEY) {
-    return res.status(404).json({ error: 'Not found' });
+  if (env.NODE_ENV === 'production') {
+    const apiKey = req.headers['x-api-key'];
+    const systemKey = env.SYSTEM_API_KEY;
+    if (!systemKey || typeof apiKey !== 'string') {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    const expected = Buffer.from(systemKey);
+    const provided = Buffer.from(apiKey);
+    if (expected.length !== provided.length || !crypto.timingSafeEqual(expected, provided)) {
+      return res.status(404).json({ error: 'Not found' });
+    }
   }
 
   const requestOrigin = typeof req.headers.origin === 'string' ? req.headers.origin : '';
