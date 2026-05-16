@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware, requireApiKey } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import * as reminderController from '../controllers/reminder.controller';
 import { z } from 'zod';
@@ -20,7 +20,7 @@ router.post(
   validate(reminderResponseSchema),
   reminderController.respondToReminder,
 );
-// System batch endpoint (protected by x-api-key in the controller)
-router.get('/batch/due', reminderController.batchDueReminders);
+// System batch endpoint — requires SYSTEM_API_KEY header
+router.get('/batch/due', requireApiKey, reminderController.batchDueReminders);
 
 export default router;

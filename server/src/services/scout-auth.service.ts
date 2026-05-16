@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { env } from '../config/env';
 
-const SCOUT_JWT_SECRET = process.env.SCOUT_JWT_SECRET || 'scout-dev-secret-change-in-prod';
+const SCOUT_JWT_SECRET = env.SCOUT_JWT_SECRET;
 const SCOUT_JWT_EXPIRES_IN = '7d';
 const PIN_SALT_ROUNDS = 10;
 

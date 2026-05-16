@@ -48,9 +48,10 @@ export async function listPosts(req: Request, res: Response, next: NextFunction)
 
     const filter: Record<string, any> = {};
     if (search) {
+      const safeSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       filter.$or = [
-        { title: new RegExp(search, 'i') },
-        { body: new RegExp(search, 'i') },
+        { title: new RegExp(safeSearch, 'i') },
+        { body: new RegExp(safeSearch, 'i') },
       ];
     }
     if (category) filter.category = category;
