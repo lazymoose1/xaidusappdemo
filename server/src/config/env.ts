@@ -43,11 +43,13 @@ if (parsed.data.NODE_ENV === 'production') {
     'dev-token-encryption-key-change-in-prod',
     'your_session_secret_here',
     'scout-dev-secret-change-in-prod',
+    'LEADER-DEV-CODE',
   ];
   const weakFields: string[] = [];
   if (WEAK_DEFAULTS.includes(parsed.data.SYSTEM_API_KEY || '')) weakFields.push('SYSTEM_API_KEY');
   if (WEAK_DEFAULTS.includes(parsed.data.TOKEN_ENCRYPTION_KEY || '')) weakFields.push('TOKEN_ENCRYPTION_KEY');
   if (WEAK_DEFAULTS.includes(parsed.data.SCOUT_JWT_SECRET)) weakFields.push('SCOUT_JWT_SECRET');
+  if (WEAK_DEFAULTS.includes(parsed.data.LEADER_INVITE_CODE)) weakFields.push('LEADER_INVITE_CODE');
   if (!parsed.data.SYSTEM_API_KEY) weakFields.push('SYSTEM_API_KEY (missing)');
   if (!parsed.data.TOKEN_ENCRYPTION_KEY) weakFields.push('TOKEN_ENCRYPTION_KEY (missing)');
   if (weakFields.length > 0) {

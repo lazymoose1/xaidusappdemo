@@ -2,7 +2,9 @@ import OpenAI from 'openai';
 import { env } from '../config/env';
 import * as goalRepo from '../repositories/goal.repo';
 import * as aiGoalFeedbackRepo from '../repositories/ai-goal-feedback.repo';
+import * as parentChildLinkRepo from '../repositories/parent-child-link.repo';
 import { buildAiContext, type AiContext } from './ai-context.service';
+import { ForbiddenError, NotFoundError } from '../lib/errors';
 
 const nvidia = env.NVIDIA_API_KEY
   ? new OpenAI({
@@ -568,6 +570,11 @@ export async function markGoalAIAdopted(
     adoptionReason?: string;
   },
 ) {
+  const goal = await goalRepo.findById(goalId);
+  if (!goal || String(goal.user_id) !== userId) {
+    throw new ForbiddenError('Goal not found or access denied');
+  }
+
   await goalRepo.update(goalId, {
     source: 'ai',
     suggestion_id: data.suggestionId,
@@ -637,6 +644,15 @@ export async function parentFeedback(
     completionTimeline?: string;
   },
 ) {
+  const goal = await goalRepo.findById(goalId);
+  if (!goal) throw new NotFoundError('Goal');
+
+  const links = await parentChildLinkRepo.findChildrenByParent(userId);
+  const childIds = links.map((l) => l.child?.id).filter(Boolean);
+  if (!childIds.includes(String(goal.user_id))) {
+    throw new ForbiddenError('Goal does not belong to a linked child');
+  }
+
   await aiGoalFeedbackRepo.upsertFeedback(goalId, userId, {
     parentReviewed: true,
     parentReviewedAt: new Date(),
