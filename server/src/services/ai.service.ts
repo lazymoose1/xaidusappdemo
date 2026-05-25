@@ -4,15 +4,28 @@ import * as goalRepo from '../repositories/goal.repo';
 import * as aiGoalFeedbackRepo from '../repositories/ai-goal-feedback.repo';
 import { buildAiContext, type AiContext } from './ai-context.service';
 
+const nvidia = env.NVIDIA_API_KEY
+  ? new OpenAI({
+      apiKey: env.NVIDIA_API_KEY,
+      baseURL: 'https://integrate.api.nvidia.com/v1',
+    })
+  : null;
+
 const openai = env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: env.OPENAI_API_KEY })
   : null;
 
+// Primary client: NVIDIA NIM if configured, otherwise OpenAI
+const primaryClient = nvidia ?? openai;
+const primaryModelName = nvidia ? env.NVIDIA_MODEL : env.OPENAI_MODEL;
+
 // ─── Canonical tiny advice ────────────────────────────────────────────────────
 // Logic ported from social_profile_scraper/routes/aiAdvice.js (github:lazymoose1/social_profile_scraper)
 
-const TINY_MODEL = 'gpt-5.4-2026-03-05';
-const TINY_MODEL_FALLBACK = 'gpt-5.2-chat-latest';
+const TINY_MODEL = nvidia ? env.NVIDIA_MODEL : env.OPENAI_MODEL;
+const TINY_MODEL_FALLBACK = nvidia ? env.OPENAI_MODEL : 'gpt-4o';
+// When NVIDIA is primary, fall back to OpenAI client for TINY_MODEL_FALLBACK
+const fallbackClient = nvidia ? openai : null;
 
 const VALID_GOAL_TYPES    = new Set(['school','skill','wellness','service','creative','other']);
 const VALID_GOAL_SIZES    = new Set(['tiny','small','medium']);
@@ -175,8 +188,9 @@ function _buildUserMessage(params: {
   goal: string; goalType: string; goalSize: string; goalDays: string[];
   checkInWindow: string; archetype: string; interests: string[];
   recentActivity: ReturnType<typeof _sanitizeRecentActivity>; orgId: string;
+  socialPlatforms: string[];
 }): string {
-  const { goal, goalType, goalSize, goalDays, checkInWindow, archetype, interests, recentActivity: ra, orgId } = params;
+  const { goal, goalType, goalSize, goalDays, checkInWindow, archetype, interests, recentActivity: ra, orgId, socialPlatforms } = params;
   const streakLine = ra.dailyCheckInStreak > 2
     ? `Streak: ${ra.dailyCheckInStreak} days in a row — keep the momentum.`
     : ra.lastCheckInStatus === 'yes'
@@ -201,7 +215,9 @@ function _buildUserMessage(params: {
     `  Weekly reset: ${ra.weeklyResetComplete ? 'done' : 'not yet done'}`,
     outcomeLine  ? `  ${outcomeLine}` : '',
     '',
-    'No social context available.',
+    socialPlatforms.length
+      ? `Connected social platforms: ${socialPlatforms.join(', ')}. Tailor suggestions to complement healthy engagement with these platforms.`
+      : 'No social platforms connected.',
     '',
     'Give one specific, realistic, teen-appropriate coaching suggestion.',
   ].filter(Boolean).join('\n').trim();
@@ -261,19 +277,19 @@ export async function tinyAdvice(
     meta: { fallbackUsed: true, socialContextUsed: false, providersConnected: [] },
   };
 
-  if (!openai) {
-    console.warn('[ADVICE] OpenAI not configured — returning fallback');
+  if (!primaryClient) {
+    console.warn('[ADVICE] No AI provider configured — returning fallback');
     return fallback;
   }
 
   const messages = [
     { role: 'system' as const, content: _buildSystemPrompt(coachStyleSanitized) },
-    { role: 'user'   as const, content: _buildUserMessage({ goal, goalType, goalSize, goalDays, checkInWindow, archetype, interests, recentActivity, orgId }) },
+    { role: 'user'   as const, content: _buildUserMessage({ goal, goalType, goalSize, goalDays, checkInWindow, archetype, interests, recentActivity, orgId, socialPlatforms }) },
   ];
 
   let raw: string | null;
   try {
-    const completion = await openai.chat.completions.create({
+    const completion = await primaryClient.chat.completions.create({
       model: TINY_MODEL,
       messages,
       response_format: { type: 'json_object' },
@@ -281,8 +297,9 @@ export async function tinyAdvice(
     raw = completion.choices[0].message.content;
   } catch (primaryErr: any) {
     console.warn('[ADVICE] primary model failed, trying fallback:', primaryErr?.message);
+    const fb = fallbackClient ?? primaryClient;
     try {
-      const completion = await openai.chat.completions.create({
+      const completion = await fb.chat.completions.create({
         model: TINY_MODEL_FALLBACK,
         messages,
         response_format: { type: 'json_object' },
@@ -438,7 +455,7 @@ export async function tinySuggest(
     ? payload.attachments.filter((v: any) => typeof v === 'string' && v.trim())
     : [];
 
-  if (openai) {
+  if (primaryClient) {
     const messages = [
       {
         role: 'system' as const,
@@ -450,8 +467,8 @@ export async function tinySuggest(
         content: `Archetype: ${archetype}. Interests: ${JSON.stringify(interests)}. Attachments: ${JSON.stringify(attachments)}. Give one actionable suggestion for: "${currentGoal}". Output JSON {suggestion,rating,reason}.`,
       },
     ];
-    const completion = await openai.chat.completions.create({
-      model: env.OPENAI_MODEL,
+    const completion = await primaryClient.chat.completions.create({
+      model: primaryModelName,
       messages,
       response_format: { type: 'json_object' },
     });
@@ -502,7 +519,7 @@ export async function getAdvice(userId: string, payload: any) {
 
   let advice: any;
 
-  if (openai) {
+  if (primaryClient) {
     const systemPrompt = `You are a goal-setting coach for teens. Suggest personalized goals based on interests, archetype, and existing progress.
 Avoid duplicating: ${existingTitles.join(', ') || 'none yet'}
 Consider archetype (${archetype}) and interests (${interests.join(', ')}).
@@ -517,8 +534,8 @@ Respond as JSON: { goals: [{title, category, reason, impactScore: 1-10, effortSc
       },
     ];
 
-    const completion = await openai.chat.completions.create({
-      model: env.OPENAI_MODEL,
+    const completion = await primaryClient.chat.completions.create({
+      model: primaryModelName,
       messages,
       response_format: { type: 'json_object' },
     });
