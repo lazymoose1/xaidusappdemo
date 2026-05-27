@@ -14,6 +14,7 @@ const envSchema = z.object({
   AUTH_DIAGNOSTICS: z.string().optional(),
   SYSTEM_API_KEY: z.string().min(1).optional(),
   TOKEN_ENCRYPTION_KEY: z.string().min(1).optional(),
+  SOCIAL_SCRAPER_URL: z.string().url().optional(),
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_MODEL: z.string().default('gpt-5'),
   NVIDIA_API_KEY: z.string().optional(),
