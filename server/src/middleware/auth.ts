@@ -59,9 +59,13 @@ export const authMiddleware: RequestHandler = async (
   }
   const token = auth.slice(7);
 
-  // Demo token only in development
+  // Demo tokens only in development
   if (env.NODE_ENV === 'development' && token === 'demo-token') {
     req.user = { id: 'demo-user', role: 'teen', authId: 'demo-auth-id', isScoutAccount: false, isScoutMember: false };
+    return next();
+  }
+  if (env.NODE_ENV === 'development' && token === 'demo-parent-token') {
+    req.user = { id: 'demo-parent', role: 'parent', authId: 'demo-parent-auth-id', isScoutAccount: false, isScoutMember: false };
     return next();
   }
 

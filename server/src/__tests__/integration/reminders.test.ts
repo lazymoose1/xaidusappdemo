@@ -92,11 +92,18 @@ describe('Reminders routes', () => {
   });
 
   describe('GET /api/reminders/batch/due', () => {
-    it('returns 200 with batch reminders (no auth required, no api key check on this endpoint)', async () => {
-      const res = await request.get('/api/reminders/batch/due');
+    it('returns 200 with valid system API key', async () => {
+      const res = await request
+        .get('/api/reminders/batch/due')
+        .set('x-api-key', 'test-api-key');
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('total');
       expect(res.body).toHaveProperty('reminders');
+    });
+
+    it('returns 401 without API key', async () => {
+      const res = await request.get('/api/reminders/batch/due');
+      expect(res.status).toBe(401);
     });
   });
 });

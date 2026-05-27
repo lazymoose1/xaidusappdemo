@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { request, authRequest } from '../helpers/request';
+import { request, authRequest, parentAuthRequest } from '../helpers/request';
 
 vi.mock('../../services/ai.service', () => ({
   tinySuggest: vi.fn().mockResolvedValue({
@@ -87,11 +87,18 @@ describe('AI routes', () => {
 
   describe('POST /api/ai/goals/:goalId/parent-feedback', () => {
     it('returns 200 with reviewed status', async () => {
-      const res = await authRequest()
+      const res = await parentAuthRequest()
         .post('/api/ai/goals/g1/parent-feedback')
         .send({ parentFeedback: 'Good job!' });
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('reviewed', true);
+    });
+
+    it('returns 403 for non-parent users', async () => {
+      const res = await authRequest()
+        .post('/api/ai/goals/g1/parent-feedback')
+        .send({ parentFeedback: 'Good job!' });
+      expect(res.status).toBe(403);
     });
   });
 
