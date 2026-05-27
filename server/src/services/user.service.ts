@@ -2,8 +2,8 @@ import * as userRepo from '../repositories/user.repo';
 import { NotFoundError } from '../lib/errors';
 
 export async function searchUsers(query: string, limit: number = 50) {
+  if (query.length < 2) return [];
   const users = await userRepo.search(query, limit);
-  // No email in public user listings
   return users.map((u) => ({
     id: u.id,
     displayName: u.display_name || 'User',
@@ -11,10 +11,6 @@ export async function searchUsers(query: string, limit: number = 50) {
       ? `@${u.display_name.toLowerCase().replace(/\s+/g, '')}`
       : '@user',
     avatarUrl: u.avatar_url || '',
-    role: u.role,
-    archetype: u.archetype || '',
-    interests: u.interests || [],
-    createdAt: u.created_at,
   }));
 }
 
@@ -49,13 +45,9 @@ export async function registerProfile(
 ) {
   const existing = await userRepo.findByAuthId(authId);
   if (existing) {
-    // If the user was JIT-provisioned as 'teen' but an explicit role is now provided,
-    // update to the correct role so parent/leader signups aren't silently demoted.
-    const requestedRole = data.role || 'teen';
+    // Role changes after initial registration must go through sendRoleCode → applyRoleChange.
+    // registerProfile must never upgrade an existing user's role.
     const update: Record<string, any> = {};
-    if (existing.role === 'teen' && requestedRole !== 'teen') {
-      update.role = requestedRole;
-    }
     if (typeof data.organizationType === 'string') {
       update.organization_type = data.organizationType;
     }
@@ -80,7 +72,6 @@ export async function registerProfile(
   // is still tied to an older auth_id for the same email address.
   const existingByEmail = email ? await userRepo.findByEmail(email) : null;
   if (existingByEmail) {
-    const requestedRole = data.role || 'teen';
     const update: Record<string, any> = {
       auth_id: authId,
       email,
@@ -89,12 +80,10 @@ export async function registerProfile(
     if (!existingByEmail.display_name && data.displayName) {
       update.display_name = data.displayName;
     }
-    if (existingByEmail.role === 'teen' && requestedRole !== 'teen') {
-      update.role = requestedRole;
-    }
     if (typeof data.organizationType === 'string') {
       update.organization_type = data.organizationType;
     }
+    // Role is never updated here — role changes go through applyRoleChange.
 
     const updated = await userRepo.update(existingByEmail.id, update);
     return {

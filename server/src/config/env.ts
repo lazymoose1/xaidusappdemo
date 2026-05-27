@@ -15,7 +15,9 @@ const envSchema = z.object({
   SYSTEM_API_KEY: z.string().min(1).optional(),
   TOKEN_ENCRYPTION_KEY: z.string().min(1).optional(),
   OPENAI_API_KEY: z.string().optional(),
-  OPENAI_MODEL: z.string().default('gpt-5.4-2026-03-05'),
+  OPENAI_MODEL: z.string().default('gpt-5'),
+  NVIDIA_API_KEY: z.string().optional(),
+  NVIDIA_MODEL: z.string().default('nvidia/llama-3.3-nemotron-super-49b-v1'),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().default(587),
   SMTP_USER: z.string().optional(),
@@ -41,11 +43,13 @@ if (parsed.data.NODE_ENV === 'production') {
     'dev-token-encryption-key-change-in-prod',
     'your_session_secret_here',
     'scout-dev-secret-change-in-prod',
+    'LEADER-DEV-CODE',
   ];
   const weakFields: string[] = [];
   if (WEAK_DEFAULTS.includes(parsed.data.SYSTEM_API_KEY || '')) weakFields.push('SYSTEM_API_KEY');
   if (WEAK_DEFAULTS.includes(parsed.data.TOKEN_ENCRYPTION_KEY || '')) weakFields.push('TOKEN_ENCRYPTION_KEY');
   if (WEAK_DEFAULTS.includes(parsed.data.SCOUT_JWT_SECRET)) weakFields.push('SCOUT_JWT_SECRET');
+  if (WEAK_DEFAULTS.includes(parsed.data.LEADER_INVITE_CODE)) weakFields.push('LEADER_INVITE_CODE');
   if (!parsed.data.SYSTEM_API_KEY) weakFields.push('SYSTEM_API_KEY (missing)');
   if (!parsed.data.TOKEN_ENCRYPTION_KEY) weakFields.push('TOKEN_ENCRYPTION_KEY (missing)');
   if (weakFields.length > 0) {

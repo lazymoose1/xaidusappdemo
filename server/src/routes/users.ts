@@ -1,9 +1,9 @@
 import { Router } from 'express';
-import { authMiddleware } from '../middleware/auth';
+import { authMiddleware, requireRegistered } from '../middleware/auth';
 import * as userController from '../controllers/user.controller';
 
 const router = Router();
 
-router.get('/', authMiddleware, userController.searchUsers);
+router.get('/', authMiddleware, requireRegistered, userController.searchUsers);
 
 export default router;
