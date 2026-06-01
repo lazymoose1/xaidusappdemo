@@ -358,6 +358,19 @@ export async function tinyAdvice(
       })
     : _sanitizeRecentActivity(body.recentActivity);
 
+  const coachStyleSanitized = _sanitizeEnum(coachStyle, VALID_COACH_STYLES, 'default');
+
+  const fallback: AiAdviceResponse = {
+    ...SAFE_FALLBACK,
+    tone: coachStyleSanitized,
+    meta: { fallbackUsed: true, socialContextUsed: false, providersConnected: [] },
+  };
+
+  if (!primaryClient) {
+    console.warn('[ADVICE] No AI provider configured — returning fallback');
+    return fallback;
+  }
+
   const messages = [
     { role: 'system' as const, content: _buildSystemPrompt(coachStyleSanitized) },
     { role: 'user'   as const, content: _buildUserMessage({ goal, goalType, goalSize, goalDays, checkInWindow, archetype, interests, recentActivity, orgId, socialPlatforms }) },
