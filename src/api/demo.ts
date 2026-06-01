@@ -140,12 +140,24 @@ export function buildMockResponse(path: string): any {
       meta: { postsSource: 'mock', postsCount: 0, providersConnected: [], platformUsed: 'demo' }
     };
   }
-  if (path.includes('/api/ai/tiny')) {
+  if (path === '/api/ai/tiny/advice' || path.endsWith('/api/ai/tiny/advice')) {
+    return {
+      ok: true,
+      suggestion: 'Break your goal into the smallest possible step you can finish in the next 10 minutes.',
+      nextStep: 'Open a blank doc or notes app and write one sentence about what that step looks like.',
+      timingSuggestion: 'after school',
+      rationale: 'Starting small makes follow-through easier.',
+      tone: 'default',
+      ageGroup: '14-18',
+      meta: { fallbackUsed: true, socialContextUsed: false, providersConnected: [] },
+    };
+  }
+  if (path === '/api/ai/tiny' || path.endsWith('/api/ai/tiny')) {
     return {
       goals: [{ title: 'Share one learning from today', category: 'learning', reason: 'Regular sharing builds consistency', impactScore: 8, effortScore: 3 }],
       steps: [{ description: 'Draft a 3-sentence post now', estMinutes: 10, goalTitle: 'Share one learning' }],
       schedule: [{ cadence: 'daily', when: 'evening' }],
-      insights: 'Mock advice (demo fallback).'
+      insights: 'Mock advice (demo fallback).',
     };
   }
   if (path.includes('/api/achievements')) {

@@ -36,7 +36,7 @@ export async function tinyAdvice(
 ) {
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
-    const result = await aiService.tinyAdvice(req.user.id, req.body);
+    const result = await aiService.tinyAdvice(req.user.id, req.body, req.headers.authorization);
     return res.json(result);
   } catch (err) {
     next(err);

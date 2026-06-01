@@ -228,39 +228,126 @@ function _buildUserMessage(params: {
 export async function tinyAdvice(
   userId: string,
   body: Record<string, unknown>,
+  authToken?: string,
 ): Promise<AiAdviceResponse> {
-  // goal text is the one thing we still accept from the request body
-  // (the user may be requesting advice on a specific goal text)
   const goalFromBody = _sanitizeStr(body.goal, 300);
 
-  // Build authoritative context from MongoDB — don't trust body for activity/profile fields
   let ctx: AiContext | null = null;
   try {
     ctx = await buildAiContext(userId);
   } catch (err) {
-    console.warn('[ADVICE] buildAiContext failed, falling back to body fields:', (err as Error).message);
+    console.warn('[ADVICE] buildAiContext failed:', (err as Error).message);
   }
 
-  // Resolve fields: prefer DB context, fall back to sanitized body
   const goal = goalFromBody || ctx?.goal?.title || '';
   if (!goal) return { ...SAFE_FALLBACK };
 
   const ageBandGuardrail = getAgeBandGuardrail(goal);
-  if (ageBandGuardrail) {
-    return ageBandGuardrail;
+  if (ageBandGuardrail) return ageBandGuardrail;
+
+  const socialPlatforms = ctx?.social?.connectedPlatforms.filter((p) => p.hasValidToken).map((p) => p.platform) || [];
+  const coachStyle      = ctx?.user?.coachStyle || _sanitizeEnum(body.coachStyle, VALID_COACH_STYLES, 'default');
+  const coachStyleSanitized = _sanitizeEnum(coachStyle, VALID_COACH_STYLES, 'default');
+
+  const fallback: AiAdviceResponse = {
+    ...SAFE_FALLBACK,
+    tone: coachStyleSanitized,
+    meta: { fallbackUsed: true, socialContextUsed: false, providersConnected: [] },
+  };
+
+  // ── Route to social profile scraper when configured ────────────────────────
+  if (env.SOCIAL_SCRAPER_URL) {
+    const aiContext = {
+      user: {
+        id: userId,
+        coachStyle: coachStyleSanitized,
+        ageGroup: '14-18',
+        archetype: ctx?.user?.archetype || _sanitizeStr(body.archetype, 60),
+        interests: ctx?.user?.interests.length ? ctx.user.interests : _sanitizeInterests(body.interests),
+      },
+      goal: ctx?.goal ? {
+        text: goal,
+        goalType: ctx.goal.goalType,
+        goalSize: ctx.goal.sizePreset,
+        subjectTag: ctx.goal.subjectTag,
+        goalDays: ctx.goal.activeDays,
+        carriedOver: !!ctx.goal.carryOver,
+      } : { text: goal },
+      recentActivity: ctx ? {
+        plannedGoalDaysThisWeek:    ctx.recentActivity.plannedGoalDaysThisWeek,
+        goalDaysCompletedThisWeek:  ctx.recentActivity.goalDaysCompletedThisWeek,
+        daysCheckedInThisWeek:      ctx.recentActivity.daysCheckedInThisWeek,
+        dailyCheckInStreak:         ctx.recentActivity.dailyCheckInStreak,
+        lastCheckInStatus:          ctx.recentActivity.lastCheckInStatus,
+        lastGoalOutcome:            ctx.recentActivity.lastGoalOutcome,
+        weeklyResetComplete:        ctx.recentActivity.weeklyResetComplete,
+      } : {},
+      rewards: ctx ? {
+        isMoova:                      ctx.rewards.isMoova,
+        moovaCurrentConsistencyDays:  ctx.rewards.moovaCurrentConsistencyDays,
+        recentMarks:                  ctx.rewards.recentMarks.length,
+        recentMoments:                ctx.rewards.recentMoments.length,
+      } : {},
+      social: {
+        providersConnected: socialPlatforms,
+        socialContext: socialPlatforms.length ? { activityLevel: 'active' } : {},
+      },
+    };
+
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (authToken) headers['Authorization'] = authToken;
+
+      const resp = await fetch(`${env.SOCIAL_SCRAPER_URL}/api/ai/tiny/advice`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ aiContext }),
+      });
+
+      if (!resp.ok) {
+        console.warn(`[ADVICE] scraper returned ${resp.status} — falling back`);
+        return fallback;
+      }
+
+      const data = await resp.json() as any;
+      if (typeof data?.suggestion !== 'string') {
+        console.warn('[ADVICE] scraper response missing suggestion — falling back');
+        return fallback;
+      }
+
+      return {
+        ok:               true,
+        suggestion:       data.suggestion,
+        nextStep:         data.nextStep,
+        timingSuggestion: data.timingSuggestion,
+        rationale:        data.rationale || '',
+        tone:             data.tone || coachStyleSanitized,
+        ageGroup:         '14-18',
+        meta: {
+          fallbackUsed:      false,
+          socialContextUsed: socialPlatforms.length > 0,
+          providersConnected: socialPlatforms,
+        },
+      };
+    } catch (err: any) {
+      console.error('[ADVICE] scraper request failed:', err?.message);
+      return fallback;
+    }
   }
 
-  const goalType      = ctx?.goal?.goalType      || _sanitizeEnum(body.goalType,      VALID_GOAL_TYPES,   'other');
-  const goalSize      = ctx?.goal?.sizePreset     || _sanitizeEnum(body.goalSize,      VALID_GOAL_SIZES,   'small');
+  // ── Direct OpenAI fallback (when SOCIAL_SCRAPER_URL is not set) ────────────
+  if (!primaryClient) {
+    console.warn('[ADVICE] No AI provider configured — returning fallback');
+    return fallback;
+  }
+
+  const goalType      = ctx?.goal?.goalType  || _sanitizeEnum(body.goalType, VALID_GOAL_TYPES, 'other');
+  const goalSize      = ctx?.goal?.sizePreset || _sanitizeEnum(body.goalSize, VALID_GOAL_SIZES, 'small');
   const goalDays      = ctx?.goal?.activeDays.length ? ctx.goal.activeDays : _sanitizeGoalDays(body.goalDays);
   const checkInWindow = ctx?.user?.reminderWindows[0] || _sanitizeEnum(body.checkInWindow, VALID_WINDOWS, 'after_school');
-  const archetype     = ctx?.user?.archetype     || _sanitizeStr(body.archetype, 60);
-  const coachStyle    = ctx?.user?.coachStyle     || _sanitizeEnum(body.coachStyle,    VALID_COACH_STYLES, 'default');
+  const archetype     = ctx?.user?.archetype || _sanitizeStr(body.archetype, 60);
   const interests     = ctx?.user?.interests.length ? ctx.user.interests : _sanitizeInterests(body.interests);
-  const orgId         = ctx?.user?.orgId          || _sanitizeStr(body.orgId, 80);
-  const socialPlatforms = ctx?.social?.connectedPlatforms.filter((p) => p.hasValidToken).map((p) => p.platform) || [];
-
-  // recentActivity always comes from DB context — never from body (security + accuracy)
+  const orgId         = ctx?.user?.orgId || _sanitizeStr(body.orgId, 80);
   const recentActivity = ctx
     ? _sanitizeRecentActivity({
         daysCheckedInThisWeek: ctx.recentActivity.daysCheckedInThisWeek,
@@ -342,7 +429,7 @@ export async function tinyAdvice(
     tone:             coachStyleSanitized,
     ageGroup:         '14-18',
     meta: {
-      fallbackUsed: false,
+      fallbackUsed:      false,
       socialContextUsed: socialPlatforms.length > 0,
       providersConnected: socialPlatforms,
     },
