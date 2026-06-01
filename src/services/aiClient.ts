@@ -4,7 +4,7 @@
  * No direct external AI service calls from the frontend.
  */
 
-import { apiFetch } from '@/api/client';
+import { apiFetch, API_BASE } from '@/api/client';
 
 // ─── Request shape ────────────────────────────────────────────────────────────
 
@@ -55,9 +55,21 @@ const LOCAL_FALLBACK: AiWrapperResponse = {
   meta: { fallbackUsed: true, providersConnected: [], socialContextUsed: false },
 };
 
+const TINY_DEBUG = import.meta.env.DEV;
+const TINY_TIMEOUT_MS = 15_000;
+
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export async function callAiWrapper(payload: AiWrapperRequest): Promise<AiWrapperResponse> {
+  const tinyApiUrl = `${API_BASE}/api/ai/tiny/advice`;
+
+  if (TINY_DEBUG) {
+    console.debug('[tiny] tiny_request_started', { tiny_api_url: tinyApiUrl, goal_prefix: payload.goal?.slice(0, 60) });
+  }
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), TINY_TIMEOUT_MS);
+
   try {
     const data = await apiFetch<AiWrapperResponse>('/api/ai/tiny/advice', {
       method: 'POST',
@@ -65,16 +77,28 @@ export async function callAiWrapper(payload: AiWrapperRequest): Promise<AiWrappe
         ...payload,
         ageGroup: payload.ageGroup ?? '14-18',
       }),
+      signal: controller.signal,
     });
 
+    clearTimeout(timeoutId);
+
     if (typeof data?.suggestion !== 'string') {
-      console.warn('[aiClient] Unexpected response shape:', data);
+      if (TINY_DEBUG) console.debug('[tiny] tiny_used_fallback', true, 'reason: unexpected_shape', data);
       return LOCAL_FALLBACK;
+    }
+
+    if (TINY_DEBUG) {
+      console.debug('[tiny] tiny_response_field_used', 'suggestion', {
+        tiny_used_fallback: data.meta?.fallbackUsed ?? false,
+        tiny_response_status: 'ok',
+      });
     }
 
     return { ok: true, ...data };
   } catch (err) {
-    console.warn('[aiClient] AI request failed:', err);
+    clearTimeout(timeoutId);
+    const reason = controller.signal.aborted ? 'timeout' : (err instanceof Error ? err.message : String(err));
+    if (TINY_DEBUG) console.debug('[tiny] tiny_used_fallback', true, 'reason:', reason);
     return LOCAL_FALLBACK;
   }
 }

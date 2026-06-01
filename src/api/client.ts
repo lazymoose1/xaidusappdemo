@@ -6,6 +6,10 @@ const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 
 export { API_BASE };
 
+if (import.meta.env.DEV) {
+  console.debug('[api] API_BASE:', API_BASE, DEMO_MODE ? '(demo mode)' : '');
+}
+
 // Cache the latest access token so apiFetch never has to call getSession()
 // from inside an onAuthStateChange callback (which can return null in Supabase v2
 // due to internal session locking while a state transition is in progress).
