@@ -84,7 +84,6 @@ export async function callAiWrapper(payload: AiWrapperRequest): Promise<AiWrappe
 
     if (typeof data?.suggestion !== 'string') {
       if (TINY_DEBUG) console.debug('[tiny] tiny_used_fallback', true, 'reason: unexpected_shape', data);
-      console.warn('[tiny] unexpected response shape from backend');
       return LOCAL_FALLBACK;
     }
 
@@ -100,7 +99,6 @@ export async function callAiWrapper(payload: AiWrapperRequest): Promise<AiWrappe
     clearTimeout(timeoutId);
     const reason = controller.signal.aborted ? 'timeout' : (err instanceof Error ? err.message : String(err));
     if (TINY_DEBUG) console.debug('[tiny] tiny_used_fallback', true, 'reason:', reason);
-    console.warn('[tiny] request failed:', reason);
     return LOCAL_FALLBACK;
   }
 }
