@@ -85,13 +85,22 @@ const GoalModal = ({ open, onOpenChange, suggestedGoals = [], onCreateGoal }: Go
       socialContext: attachments.length > 0 ? `User attached ${attachments.length} file(s).` : undefined,
     });
 
+    setAnalyzing(false);
+
+    if (response.meta?.fallbackUsed) {
+      toast({
+        title: "Couldn't reach TINY",
+        description: "Check your connection and try again. If it keeps failing, the service may be restarting.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const parts = [response.suggestion];
     if (response.nextStep) parts.push(`Next step: ${response.nextStep}`);
     if (response.timingSuggestion) parts.push(`Timing: ${response.timingSuggestion}`);
     setSuggestion(parts.join('\n\n'));
     setWhyText(response.rationale || "");
-
-    setAnalyzing(false);
   };
 
   const refineGoal = async () => {
@@ -106,15 +115,24 @@ const GoalModal = ({ open, onOpenChange, suggestedGoals = [], onCreateGoal }: Go
       ageGroup: '14-18',
     });
 
+    setRefining(false);
+    setFollowUp("");
+
+    if (response.meta?.fallbackUsed) {
+      toast({
+        title: "Couldn't reach TINY",
+        description: "Check your connection and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const parts = [response.suggestion];
     if (response.nextStep) parts.push(`Next step: ${response.nextStep}`);
     if (response.timingSuggestion) parts.push(`Timing: ${response.timingSuggestion}`);
     setSuggestion(parts.join('\n\n'));
     setWhyText(response.rationale || "");
     setShowWhy(false);
-
-    setFollowUp("");
-    setRefining(false);
   };
 
   const handleClose = () => {
