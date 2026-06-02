@@ -16,13 +16,15 @@ if (import.meta.env.DEV) {
 // due to internal session locking while a state transition is in progress).
 let _cachedAccessToken: string | null = null;
 
-supabase.auth.getSession().then(({ data: { session } }) => {
-  _cachedAccessToken = session?.access_token ?? null;
-});
+if (!DEMO_MODE) {
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    _cachedAccessToken = session?.access_token ?? null;
+  });
 
-supabase.auth.onAuthStateChange((_event, session) => {
-  _cachedAccessToken = session?.access_token ?? null;
-});
+  supabase.auth.onAuthStateChange((_event, session) => {
+    _cachedAccessToken = session?.access_token ?? null;
+  });
+}
 
 // Main app client — hits VITE_API_BASE, sends Supabase JWT only. Never sends scout_token.
 export async function apiFetch<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {

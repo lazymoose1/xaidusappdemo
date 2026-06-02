@@ -126,7 +126,7 @@ describe('buildMockResponse', () => {
   });
 
   it('returns AI tiny advice for /api/ai/tiny', () => {
-    const result = buildMockResponse('/api/ai/tiny/advice');
+    const result = buildMockResponse('/api/ai/tiny');
     expect(result).toHaveProperty('goals');
     expect(result).toHaveProperty('steps');
     expect(result).toHaveProperty('schedule');
