@@ -66,7 +66,8 @@ if (!DEMO_MODE) {
   });
 }
 
-// Main app client — hits VITE_API_BASE, sends Supabase JWT only. Never sends scout_token.
+// Main app client — hits VITE_API_BASE and sends the active session token.
+// PIN-auth youth use scout_token; email/password users use the Supabase JWT.
 export async function apiFetch<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
   if (DEMO_MODE) {
     const { buildMockResponse } = await import('./demo');
@@ -78,20 +79,29 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
     ...(options.headers as Record<string, string> || {}),
   };
 
-  let accessToken = _cachedAccessToken;
+  const scoutToken = localStorage.getItem('scout_token');
+  let authSource: 'scout-jwt' | 'supabase-jwt' | 'none' = 'none';
 
-  if (!accessToken) {
-    const { data: { session } } = await supabase.auth.getSession();
-    accessToken = session?.access_token ?? null;
-    _cachedAccessToken = accessToken;
-  }
+  if (scoutToken) {
+    headers.Authorization = `Bearer ${scoutToken}`;
+    authSource = 'scout-jwt';
+  } else {
+    let accessToken = _cachedAccessToken;
 
-  if (accessToken) {
-    headers.Authorization = `Bearer ${accessToken}`;
+    if (!accessToken) {
+      const { data: { session } } = await supabase.auth.getSession();
+      accessToken = session?.access_token ?? null;
+      _cachedAccessToken = accessToken;
+    }
+
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`;
+      authSource = 'supabase-jwt';
+    }
   }
 
   const url = `${API_BASE}${path}`;
-  console.log('[apiFetch]', options.method || 'GET', url, '| auth:', accessToken ? 'supabase-jwt' : 'none');
+  console.log('[apiFetch]', options.method || 'GET', url, '| auth:', authSource);
 
   const response = await fetch(url, { ...options, headers });
   if (!response.ok) {
