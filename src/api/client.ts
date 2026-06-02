@@ -7,8 +7,9 @@ const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 
 export { API_BASE, SCOUT_API_BASE };
 
-// Always log so routing is visible in production browser consoles.
-console.log('[api] API_BASE:', API_BASE, '| SCOUT_API_BASE:', SCOUT_API_BASE, DEMO_MODE ? '| demo mode' : '');
+if (import.meta.env.DEV) {
+  console.debug('[api] API_BASE:', API_BASE, 'SCOUT_API_BASE:', SCOUT_API_BASE, DEMO_MODE ? '(demo mode)' : '');
+}
 
 // Cache the latest Supabase access token so apiFetch never has to call getSession()
 // from inside an onAuthStateChange callback (which can return null in Supabase v2
@@ -35,26 +36,33 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
     ...(options.headers as Record<string, string> || {}),
   };
 
+  let supabaseSessionExists = false;
+  let accessTokenExists = false;
   let accessToken = _cachedAccessToken;
 
   if (!accessToken) {
     const { data: { session } } = await supabase.auth.getSession();
+    supabaseSessionExists = Boolean(session);
+    accessTokenExists = Boolean(session?.access_token);
     accessToken = session?.access_token ?? null;
     _cachedAccessToken = accessToken;
+  } else {
+    supabaseSessionExists = true;
+    accessTokenExists = true;
   }
 
   if (accessToken) {
     headers.Authorization = `Bearer ${accessToken}`;
   }
 
-  const url = `${API_BASE}${path}`;
-  console.log('[apiFetch]', options.method || 'GET', url, '| auth:', accessToken ? 'supabase-jwt' : 'none');
+  const url = `${SCOUT_API_BASE}${path}`;
+  console.log('[scoutFetch]', options.method || 'GET', url, '| auth:', scoutToken ? 'scout-jwt' : 'none');
 
   const response = await fetch(url, { ...options, headers });
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
     const errMsg = (data && typeof data === 'object' && 'error' in data) ? String((data as { error: unknown }).error) : response.statusText;
-    console.warn('[apiFetch] error', response.status, url, errMsg);
+    console.warn('[scoutFetch] error', response.status, url, errMsg);
     throw new Error(errMsg);
   }
   return response.json();
@@ -72,14 +80,10 @@ export async function scoutFetch<T = unknown>(path: string, options: RequestInit
     headers.Authorization = `Bearer ${scoutToken}`;
   }
 
-  const url = `${SCOUT_API_BASE}${path}`;
-  console.log('[scoutFetch]', options.method || 'GET', url, '| auth:', scoutToken ? 'scout-jwt' : 'none');
-
-  const response = await fetch(url, { ...options, headers });
+  const response = await fetch(`${SCOUT_API_BASE}${path}`, { ...options, headers });
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
     const errMsg = (data && typeof data === 'object' && 'error' in data) ? String((data as { error: unknown }).error) : response.statusText;
-    console.warn('[scoutFetch] error', response.status, url, errMsg);
     throw new Error(errMsg);
   }
   return response.json();
