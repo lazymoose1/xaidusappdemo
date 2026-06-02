@@ -42,6 +42,8 @@ export type AiWrapperResponse = {
   ageGroup?: string;
   meta?: {
     fallbackUsed?: boolean;
+    localFallback?: boolean;
+    fallbackReason?: string;
     providersConnected?: string[];
     socialContextUsed?: boolean;
   };
@@ -52,10 +54,15 @@ export type AiWrapperResponse = {
 const LOCAL_FALLBACK: AiWrapperResponse = {
   ok: true,
   suggestion: 'Pick the easiest 5-minute version of your goal.',
-  meta: { fallbackUsed: true, providersConnected: [], socialContextUsed: false },
+  meta: {
+    fallbackUsed: true,
+    localFallback: true,
+    fallbackReason: 'client_unavailable',
+    providersConnected: [],
+    socialContextUsed: false,
+  },
 };
 
-const TINY_DEBUG = import.meta.env.DEV;
 const TINY_TIMEOUT_MS = 15_000;
 
 // ─── Main export ──────────────────────────────────────────────────────────────
@@ -63,9 +70,11 @@ const TINY_TIMEOUT_MS = 15_000;
 export async function callAiWrapper(payload: AiWrapperRequest): Promise<AiWrapperResponse> {
   const tinyApiUrl = `${API_BASE}/api/ai/tiny/advice`;
 
-  if (TINY_DEBUG) {
-    console.debug('[tiny] tiny_request_started', { tiny_api_url: tinyApiUrl, goal_prefix: payload.goal?.slice(0, 60) });
-  }
+  console.info('[tiny] request_started', {
+    tinyApiUrl,
+    hasGoal: Boolean(payload.goal?.trim()),
+    interestCount: payload.interests?.length ?? 0,
+  });
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), TINY_TIMEOUT_MS);
@@ -83,22 +92,35 @@ export async function callAiWrapper(payload: AiWrapperRequest): Promise<AiWrappe
     clearTimeout(timeoutId);
 
     if (typeof data?.suggestion !== 'string') {
-      if (TINY_DEBUG) console.debug('[tiny] tiny_used_fallback', true, 'reason: unexpected_shape', data);
-      return LOCAL_FALLBACK;
+      console.warn('[tiny] fallback_used', {
+        reason: 'unexpected_response_shape',
+        tinyApiUrl,
+        responseKeys: data && typeof data === 'object' ? Object.keys(data as Record<string, unknown>) : [],
+      });
+      return {
+        ...LOCAL_FALLBACK,
+        meta: { ...LOCAL_FALLBACK.meta, fallbackReason: 'unexpected_response_shape' },
+      };
     }
 
-    if (TINY_DEBUG) {
-      console.debug('[tiny] tiny_response_field_used', 'suggestion', {
-        tiny_used_fallback: data.meta?.fallbackUsed ?? false,
-        tiny_response_status: 'ok',
-      });
-    }
+    console.info('[tiny] response_received', {
+      fallbackUsed: data.meta?.fallbackUsed ?? false,
+      localFallback: data.meta?.localFallback ?? false,
+      providersConnectedCount: data.meta?.providersConnected?.length ?? 0,
+    });
 
     return { ok: true, ...data };
   } catch (err) {
     clearTimeout(timeoutId);
     const reason = controller.signal.aborted ? 'timeout' : (err instanceof Error ? err.message : String(err));
-    if (TINY_DEBUG) console.debug('[tiny] tiny_used_fallback', true, 'reason:', reason);
-    return LOCAL_FALLBACK;
+    console.warn('[tiny] fallback_used', {
+      reason,
+      tinyApiUrl,
+      apiBase: API_BASE,
+    });
+    return {
+      ...LOCAL_FALLBACK,
+      meta: { ...LOCAL_FALLBACK.meta, fallbackReason: reason },
+    };
   }
 }
