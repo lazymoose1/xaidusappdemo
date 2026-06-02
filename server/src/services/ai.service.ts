@@ -43,6 +43,8 @@ const BANNED_PHRASES = [
   'public update','post an update','ask one question to your audience',
 ];
 
+const SCRAPER_ADVICE_PATH = '/api/ai/tiny/advice';
+
 const CRISIS_RE = /\b(suicide|kill myself|want to die|self harm|self-harm|cut myself|overdose|end my life)\b/i;
 const SEXUAL_RE = /\b(sext|nudes|porn|hook up|hookup|sex tape|explicit pics?)\b/i;
 const SUBSTANCE_RE = /\b(buy weed|buy alcohol|get drunk|vape tricks|hide vaping|fake id|buy a vape)\b/i;
@@ -152,6 +154,98 @@ function _sanitizeRecentActivity(ra: unknown) {
   };
 }
 
+function _scraperAdviceUrl(): string | null {
+  if (!env.SOCIAL_PROFILE_SCRAPER_URL) return null;
+  const base = env.SOCIAL_PROFILE_SCRAPER_URL.replace(/\/+$/, '');
+  return `${base}${SCRAPER_ADVICE_PATH}`;
+}
+
+function _sanitizeAdviceText(v: unknown, max = 260): string {
+  return _sanitizeStr(v, max);
+}
+
+function _normalizeTinyAdviceResponse(
+  data: unknown,
+  coachStyle: string,
+  socialPlatforms: string[],
+): AiAdviceResponse | null {
+  const raw = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+  const suggestion = _sanitizeAdviceText(raw.suggestion);
+  const nextStep = _sanitizeAdviceText(raw.nextStep);
+  const rationale = _sanitizeAdviceText(raw.rationale, 320);
+  const timingSuggestion = _sanitizeEnum(
+    raw.timingSuggestion,
+    VALID_TIMING_RESP,
+    'after school',
+  );
+  const tone = _sanitizeEnum(raw.tone, VALID_COACH_STYLES, coachStyle);
+
+  if (!suggestion || !nextStep || !rationale) return null;
+
+  const responseText = `${suggestion} ${nextStep}`.toLowerCase();
+  if (BANNED_PHRASES.some((p) => responseText.includes(p))) return null;
+
+  return {
+    ok: true,
+    suggestion,
+    nextStep,
+    timingSuggestion,
+    rationale,
+    tone,
+    ageGroup: '14-18',
+    meta: {
+      fallbackUsed: false,
+      socialContextUsed: socialPlatforms.length > 0,
+      providersConnected: socialPlatforms,
+    },
+  };
+}
+
+async function _fetchScraperTinyAdvice(
+  aiContext: Record<string, unknown>,
+  coachStyle: string,
+  socialPlatforms: string[],
+): Promise<AiAdviceResponse | null> {
+  const url = _scraperAdviceUrl();
+  if (!url) return null;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), env.SOCIAL_PROFILE_SCRAPER_TIMEOUT_MS);
+
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (env.SOCIAL_PROFILE_SCRAPER_API_KEY) {
+      headers.Authorization = `Bearer ${env.SOCIAL_PROFILE_SCRAPER_API_KEY}`;
+    }
+
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers,
+      signal: controller.signal,
+      body: JSON.stringify({ aiContext }),
+    });
+
+    if (!resp.ok) {
+      console.warn('[ADVICE] source=fallback reason=scraper_status status=%s', resp.status);
+      return null;
+    }
+
+    const normalized = _normalizeTinyAdviceResponse(await resp.json(), coachStyle, socialPlatforms);
+    if (!normalized) {
+      console.warn('[ADVICE] source=fallback reason=scraper_malformed');
+      return null;
+    }
+
+    console.info('[ADVICE] source=scraper providersConnected=%d', socialPlatforms.length);
+    return normalized;
+  } catch (err: any) {
+    console.warn('[ADVICE] source=fallback reason=scraper_error error=%s', err?.name || 'unknown');
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function _styleHint(coachStyle: string): string {
   switch (coachStyle) {
     case 'hype':  return 'Tone: energetic, playful, short punchy sentences. Light emoji OK.';
@@ -228,7 +322,7 @@ function _buildUserMessage(params: {
 export async function tinyAdvice(
   userId: string,
   body: Record<string, unknown>,
-  authToken?: string,
+  _authToken?: string,
 ): Promise<AiAdviceResponse> {
   const goalFromBody = _sanitizeStr(body.goal, 300);
 
@@ -255,8 +349,8 @@ export async function tinyAdvice(
     meta: { fallbackUsed: true, socialContextUsed: false, providersConnected: [] },
   };
 
-  // ── Route to social profile scraper when configured ────────────────────────
-  if (env.SOCIAL_SCRAPER_URL) {
+  // Route to the social profile scraper on the server only. Never expose this URL or key to the browser.
+  if (env.SOCIAL_PROFILE_SCRAPER_URL) {
     const aiContext = {
       user: {
         id: userId,
@@ -294,50 +388,16 @@ export async function tinyAdvice(
       },
     };
 
-    try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (authToken) headers['Authorization'] = authToken;
-
-      const resp = await fetch(`${env.SOCIAL_SCRAPER_URL}/api/ai/tiny/advice`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ aiContext }),
-      });
-
-      if (!resp.ok) {
-        console.warn(`[ADVICE] scraper returned ${resp.status} — falling back`);
-        return fallback;
-      }
-
-      const data = await resp.json() as any;
-      if (typeof data?.suggestion !== 'string') {
-        console.warn('[ADVICE] scraper response missing suggestion — falling back');
-        return fallback;
-      }
-
-      return {
-        ok:               true,
-        suggestion:       data.suggestion,
-        nextStep:         data.nextStep,
-        timingSuggestion: data.timingSuggestion,
-        rationale:        data.rationale || '',
-        tone:             data.tone || coachStyleSanitized,
-        ageGroup:         '14-18',
-        meta: {
-          fallbackUsed:      false,
-          socialContextUsed: socialPlatforms.length > 0,
-          providersConnected: socialPlatforms,
-        },
-      };
-    } catch (err: any) {
-      console.error('[ADVICE] scraper request failed:', err?.message);
-      return fallback;
-    }
+    const scraperAdvice = await _fetchScraperTinyAdvice(
+      aiContext,
+      coachStyleSanitized,
+      socialPlatforms,
+    );
+    if (scraperAdvice) return scraperAdvice;
   }
 
-  // ── Direct OpenAI fallback (when SOCIAL_SCRAPER_URL is not set) ────────────
   if (!primaryClient) {
-    console.warn('[ADVICE] No AI provider configured — returning fallback');
+    console.warn('[ADVICE] source=fallback reason=no_provider');
     return fallback;
   }
 
