@@ -1,7 +1,47 @@
 import { supabase } from '@/integrations/supabase/client';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001';
-const SCOUT_API_BASE = import.meta.env.VITE_SCOUT_API_BASE || API_BASE;
+const LOCAL_API_BASE = 'http://localhost:3001';
+const PRODUCTION_API_BASE = 'https://xaidusappdemo.onrender.com';
+const BLOCKED_API_BASE_HOSTS = [
+  'social-profile-scraper.onrender.com',
+];
+
+function resolveServiceBase(envValue: string | undefined, fallbackBase: string, label: string) {
+  const configuredBase = (envValue || '').trim();
+  const shouldIgnoreLocalhost =
+    import.meta.env.PROD &&
+    /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/?$/i.test(configuredBase);
+  const rawBase = (configuredBase && !shouldIgnoreLocalhost ? configuredBase : fallbackBase).trim();
+  const normalizedBase = rawBase.replace(/\/+$/, '');
+
+  try {
+    const url = new URL(normalizedBase);
+    const blockedHost = BLOCKED_API_BASE_HOSTS.find((host) => url.hostname === host);
+
+    if (blockedHost) {
+      throw new Error(
+        `${label} is pointed at ${blockedHost}. Use the Xaidus backend Render service instead; configure the scraper URL only on the server as SOCIAL_PROFILE_SCRAPER_URL.`,
+      );
+    }
+
+    return normalizedBase;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : `Invalid ${label}`;
+    console.error('[config] API base configuration error:', message);
+    throw err;
+  }
+}
+
+const API_BASE = resolveServiceBase(
+  import.meta.env.VITE_API_BASE,
+  import.meta.env.PROD ? PRODUCTION_API_BASE : LOCAL_API_BASE,
+  'VITE_API_BASE',
+);
+const SCOUT_API_BASE = resolveServiceBase(
+  import.meta.env.VITE_SCOUT_API_BASE,
+  API_BASE,
+  'VITE_SCOUT_API_BASE',
+);
 
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 

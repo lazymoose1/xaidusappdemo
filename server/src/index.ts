@@ -49,16 +49,6 @@ app.use((req, _res, next) => {
 });
 
 app.use(helmet());
-
-// HTTPS enforcement in production
-if (env.NODE_ENV === 'production') {
-  app.use((req, res, next) => {
-    if (req.headers['x-forwarded-proto'] !== 'https') {
-      return res.redirect(301, `https://${req.headers.host}${req.url}`);
-    }
-    next();
-  });
-}
 app.use(
   cors({
     origin(origin, callback) {
