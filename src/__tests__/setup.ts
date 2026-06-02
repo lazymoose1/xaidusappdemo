@@ -20,6 +20,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 vi.stubGlobal('import.meta', {
   env: {
     VITE_API_BASE: 'http://localhost:4000',
+    VITE_SCOUT_API_BASE: 'http://localhost:3001',
     VITE_DEMO_MODE: 'false',
     VITE_SUPABASE_URL: 'https://test.supabase.co',
     VITE_SUPABASE_ANON_KEY: 'test-anon-key',

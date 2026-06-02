@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { normalizeArchetype, DEFAULT_ARCHETYPE } from '@/lib/archetypes';
 import type { ApiUser } from '@/types/api';
 import { authApi, scoutAuthApi } from '@/api/endpoints';
+import { scoutFetch } from '@/api/client';
 
 const SCOUT_TOKEN_KEY = 'scout_token';
 
@@ -82,7 +83,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const timeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('timeout')), 8000)
       );
-      Promise.race([authApi.getMe(), timeout]).then((profile) => {
+      Promise.race([scoutFetch<ApiUser>('/api/auth/me'), timeout]).then((profile) => {
         setUser({ ...profile, archetype: normalizeArchetype((profile as any)?.archetype) });
         setProfileStatus('loaded');
         setLoading(false);

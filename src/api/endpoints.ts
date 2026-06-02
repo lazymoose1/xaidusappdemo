@@ -1,4 +1,4 @@
-import { apiFetch } from './client';
+import { apiFetch, scoutFetch } from './client';
 import type {
   ApiGoal,
   ApiTodayGoal,
@@ -116,24 +116,24 @@ export const authApi = {
 
 export const scoutAuthApi = {
   login: (data: { troopCode: string; nickname: string; pin: string }) =>
-    apiFetch<{ token: string; user: ApiUser }>('/api/scout-auth/login', { method: 'POST', body: JSON.stringify(data) }),
+    scoutFetch<{ token: string; user: ApiUser }>('/api/scout-auth/login', { method: 'POST', body: JSON.stringify(data) }),
   createScout: (data: { nickname: string; pin: string; badgeFocus?: string }) =>
-    apiFetch<{ id: string; nickname: string; troopCode: string }>('/api/scout-auth/create-scout', { method: 'POST', body: JSON.stringify(data) }),
+    scoutFetch<{ id: string; nickname: string; troopCode: string }>('/api/scout-auth/create-scout', { method: 'POST', body: JSON.stringify(data) }),
 };
 
 export const scoutApi = {
-  getToday: () => apiFetch<ScoutTodayData>('/api/scout/today'),
+  getToday: () => scoutFetch<ScoutTodayData>('/api/scout/today'),
   nudgeBack: (nudgeId: string, goalCompleted?: boolean) =>
-    apiFetch<{ success: boolean }>('/api/scout/nudge-back', { method: 'POST', body: JSON.stringify({ nudgeId, goalCompleted }) }),
-  getCredentials: () => apiFetch<ScoutCredential[]>('/api/scout/credentials'),
+    scoutFetch<{ success: boolean }>('/api/scout/nudge-back', { method: 'POST', body: JSON.stringify({ nudgeId, goalCompleted }) }),
+  getCredentials: () => scoutFetch<ScoutCredential[]>('/api/scout/credentials'),
   acknowledgeCredential: (credentialId: string) =>
-    apiFetch<{ success: boolean }>('/api/scout/acknowledge-credential', { method: 'POST', body: JSON.stringify({ credentialId }) }),
+    scoutFetch<{ success: boolean }>('/api/scout/acknowledge-credential', { method: 'POST', body: JSON.stringify({ credentialId }) }),
   anchorCredential: (id: string) =>
-    apiFetch<AnchorResponse>(`/api/scout/credentials/${id}/anchor`, { method: 'POST' }),
+    scoutFetch<AnchorResponse>(`/api/scout/credentials/${id}/anchor`, { method: 'POST' }),
   getAnchorStatus: (id: string) =>
-    apiFetch<AnchorResponse>(`/api/scout/credentials/${id}/anchor`),
+    scoutFetch<AnchorResponse>(`/api/scout/credentials/${id}/anchor`),
   sessionClose: () =>
-    apiFetch<{ success: boolean }>('/api/scout/session-close', { method: 'POST' }),
+    scoutFetch<{ success: boolean }>('/api/scout/session-close', { method: 'POST' }),
 };
 
 export const rewardsApi = {
