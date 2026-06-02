@@ -73,6 +73,14 @@ describe('AI routes', () => {
       expect(res.body).toHaveProperty('suggestion');
       expect(res.body).toHaveProperty('nextStep');
     });
+
+    it('returns a valid preflight response', async () => {
+      const res = await request
+        .options('/api/ai/tiny/advice')
+        .set('Origin', 'http://localhost:5173')
+        .set('Access-Control-Request-Method', 'POST');
+      expect([200, 204]).toContain(res.status);
+    });
   });
 
   describe('POST /api/ai/goals/:goalId/mark-ai-adopted', () => {

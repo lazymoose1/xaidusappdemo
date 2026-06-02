@@ -1,7 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3001';
-const SCOUT_API_BASE = import.meta.env.VITE_SCOUT_API_BASE || 'http://localhost:3001';
+const SCOUT_API_BASE = import.meta.env.VITE_SCOUT_API_BASE || API_BASE;
 
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
 
@@ -15,15 +15,16 @@ if (import.meta.env.DEV) {
 // from inside an onAuthStateChange callback (which can return null in Supabase v2
 // due to internal session locking while a state transition is in progress).
 let _cachedAccessToken: string | null = null;
-const AUTH_ME_PATH = '/api/auth/me';
 
-supabase.auth.getSession().then(({ data: { session } }) => {
-  _cachedAccessToken = session?.access_token ?? null;
-});
+if (!DEMO_MODE) {
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    _cachedAccessToken = session?.access_token ?? null;
+  });
 
-supabase.auth.onAuthStateChange((_event, session) => {
-  _cachedAccessToken = session?.access_token ?? null;
-});
+  supabase.auth.onAuthStateChange((_event, session) => {
+    _cachedAccessToken = session?.access_token ?? null;
+  });
+}
 
 // Main app client — hits VITE_API_BASE, sends Supabase JWT only. Never sends scout_token.
 export async function apiFetch<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
@@ -37,38 +38,26 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
     ...(options.headers as Record<string, string> || {}),
   };
 
-  let supabaseSessionExists = false;
-  let accessTokenExists = false;
   let accessToken = _cachedAccessToken;
 
   if (!accessToken) {
     const { data: { session } } = await supabase.auth.getSession();
-    supabaseSessionExists = Boolean(session);
-    accessTokenExists = Boolean(session?.access_token);
     accessToken = session?.access_token ?? null;
     _cachedAccessToken = accessToken;
-  } else {
-    supabaseSessionExists = true;
-    accessTokenExists = true;
   }
 
   if (accessToken) {
     headers.Authorization = `Bearer ${accessToken}`;
   }
 
-  if (import.meta.env.DEV && path === AUTH_ME_PATH) {
-    console.debug('[AUTH DIAG] apiFetch auth header', {
-      path,
-      sessionExists: supabaseSessionExists,
-      accessTokenExists,
-      hasAuthorizationHeader: Boolean(headers.Authorization),
-    });
-  }
+  const url = `${API_BASE}${path}`;
+  console.log('[apiFetch]', options.method || 'GET', url, '| auth:', accessToken ? 'supabase-jwt' : 'none');
 
-  const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  const response = await fetch(url, { ...options, headers });
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
     const errMsg = (data && typeof data === 'object' && 'error' in data) ? String((data as { error: unknown }).error) : response.statusText;
+    console.warn('[apiFetch] error', response.status, url, errMsg);
     throw new Error(errMsg);
   }
   return response.json();
@@ -86,7 +75,10 @@ export async function scoutFetch<T = unknown>(path: string, options: RequestInit
     headers.Authorization = `Bearer ${scoutToken}`;
   }
 
-  const response = await fetch(`${SCOUT_API_BASE}${path}`, { ...options, headers });
+  const url = `${SCOUT_API_BASE}${path}`;
+  console.log('[scoutFetch]', options.method || 'GET', url, '| auth:', scoutToken ? 'scout-jwt' : 'none');
+
+  const response = await fetch(url, { ...options, headers });
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
     const errMsg = (data && typeof data === 'object' && 'error' in data) ? String((data as { error: unknown }).error) : response.statusText;
