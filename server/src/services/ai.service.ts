@@ -59,18 +59,31 @@ export type AiAdviceResponse = {
   rationale?: string;
   tone?: string;
   ageGroup?: string;
-  meta?: { fallbackUsed: boolean; socialContextUsed: boolean; providersConnected: string[]; guardrailTriggered?: string };
+  meta?: {
+    fallbackUsed: boolean;
+    socialContextUsed: boolean;
+    providersConnected: string[];
+    guardrailTriggered?: string;
+    fallbackReason?: string;
+    adviceSource?: 'scraper' | 'provider' | 'fallback' | 'guardrail';
+  };
 };
 
 const SAFE_FALLBACK: AiAdviceResponse = {
-  ok: false,
+  ok: true,
   suggestion: "Take 10 minutes to write down one thing you want to get done today. Just one.",
   nextStep:   "Open your notes app and write it down now.",
   timingSuggestion: "after school",
   rationale:  "Starting small beats not starting at all.",
   tone:       "default",
   ageGroup:   "14-18",
-  meta: { fallbackUsed: true, socialContextUsed: false, providersConnected: [] },
+  meta: {
+    fallbackUsed: true,
+    socialContextUsed: false,
+    providersConnected: [],
+    fallbackReason: 'safe_default',
+    adviceSource: 'fallback',
+  },
 };
 
 function getAgeBandGuardrail(goal: string): AiAdviceResponse | null {
@@ -349,7 +362,13 @@ export async function tinyAdvice(
   const fallback: AiAdviceResponse = {
     ...SAFE_FALLBACK,
     tone: coachStyleSanitized,
-    meta: { fallbackUsed: true, socialContextUsed: false, providersConnected: [] },
+    meta: {
+      fallbackUsed: true,
+      socialContextUsed: false,
+      providersConnected: [],
+      fallbackReason: 'safe_default',
+      adviceSource: 'fallback',
+    },
   };
 
   // Route to the social profile scraper on the server only. Never expose this URL or key to the browser.
@@ -397,6 +416,15 @@ export async function tinyAdvice(
       socialPlatforms,
     );
     if (scraperAdvice) return scraperAdvice;
+
+    console.warn('[ADVICE] source=fallback reason=scraper_unavailable');
+    return {
+      ...fallback,
+      meta: {
+        ...fallback.meta!,
+        fallbackReason: 'scraper_unavailable',
+      },
+    };
   }
 
   if (!primaryClient) {
