@@ -69,6 +69,10 @@ export type AiAdviceResponse = {
   };
 };
 
+type ScraperAdviceResult =
+  | { advice: AiAdviceResponse; fallbackReason?: never }
+  | { advice: null; fallbackReason: string };
+
 const SAFE_FALLBACK: AiAdviceResponse = {
   ok: true,
   suggestion: "Take 10 minutes to write down one thing you want to get done today. Just one.",
@@ -218,9 +222,9 @@ async function _fetchScraperTinyAdvice(
   aiContext: Record<string, unknown>,
   coachStyle: string,
   socialPlatforms: string[],
-): Promise<AiAdviceResponse | null> {
+): Promise<ScraperAdviceResult> {
   const url = _scraperAdviceUrl();
-  if (!url) return null;
+  if (!url) return { advice: null, fallbackReason: 'scraper_url_missing' };
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), env.SOCIAL_PROFILE_SCRAPER_TIMEOUT_MS);
@@ -243,20 +247,21 @@ async function _fetchScraperTinyAdvice(
 
     if (!resp.ok) {
       console.warn('[ADVICE] source=fallback reason=scraper_status status=%s', resp.status);
-      return null;
+      return { advice: null, fallbackReason: `scraper_status_${resp.status}` };
     }
 
     const normalized = _normalizeTinyAdviceResponse(await resp.json(), coachStyle, socialPlatforms);
     if (!normalized) {
       console.warn('[ADVICE] source=fallback reason=scraper_malformed');
-      return null;
+      return { advice: null, fallbackReason: 'scraper_malformed' };
     }
 
     console.info('[ADVICE] source=scraper providersConnected=%d', socialPlatforms.length);
-    return normalized;
+    return { advice: normalized };
   } catch (err: any) {
-    console.warn('[ADVICE] source=fallback reason=scraper_error error=%s', err?.name || 'unknown');
-    return null;
+    const fallbackReason = err?.name === 'AbortError' ? 'scraper_timeout' : `scraper_error_${err?.name || 'unknown'}`;
+    console.warn('[ADVICE] source=fallback reason=%s error=%s', fallbackReason, err?.message || 'unknown');
+    return { advice: null, fallbackReason };
   } finally {
     clearTimeout(timeout);
   }
@@ -410,19 +415,19 @@ export async function tinyAdvice(
       },
     };
 
-    const scraperAdvice = await _fetchScraperTinyAdvice(
+    const scraperResult = await _fetchScraperTinyAdvice(
       aiContext,
       coachStyleSanitized,
       socialPlatforms,
     );
-    if (scraperAdvice) return scraperAdvice;
+    if (scraperResult.advice) return scraperResult.advice;
 
-    console.warn('[ADVICE] source=fallback reason=scraper_unavailable');
+    console.warn('[ADVICE] source=fallback reason=%s', scraperResult.fallbackReason);
     return {
       ...fallback,
       meta: {
         ...fallback.meta!,
-        fallbackReason: 'scraper_unavailable',
+        fallbackReason: scraperResult.fallbackReason,
       },
     };
   }
