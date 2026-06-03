@@ -213,7 +213,10 @@ async function _fetchScraperTinyAdvice(
   const timeout = setTimeout(() => controller.abort(), env.SOCIAL_PROFILE_SCRAPER_TIMEOUT_MS);
 
   try {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'x-xaidus-service': 'xaidusappdemo',
+    };
     if (env.SOCIAL_PROFILE_SCRAPER_API_KEY) {
       headers.Authorization = `Bearer ${env.SOCIAL_PROFILE_SCRAPER_API_KEY}`;
     }

@@ -87,20 +87,23 @@ const GoalModal = ({ open, onOpenChange, suggestedGoals = [], onCreateGoal }: Go
 
     setAnalyzing(false);
 
-    if (response.meta?.fallbackUsed) {
-      toast({
-        title: "Couldn't reach TINY",
-        description: "Check your connection and try again. If it keeps failing, the service may be restarting.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     const parts = [response.suggestion];
     if (response.nextStep) parts.push(`Next step: ${response.nextStep}`);
     if (response.timingSuggestion) parts.push(`Timing: ${response.timingSuggestion}`);
     setSuggestion(parts.join('\n\n'));
     setWhyText(response.rationale || "");
+
+    if (response.meta?.fallbackUsed) {
+      console.warn('[tiny] fallback_displayed', {
+        localFallback: response.meta.localFallback ?? false,
+        fallbackReason: response.meta.fallbackReason ?? 'backend_fallback',
+      });
+      toast({
+        title: response.meta.localFallback ? "TINY is using backup mode" : "TINY used a safe backup",
+        description: "Showing a small next step while the full advice service catches up.",
+      });
+      return;
+    }
   };
 
   const refineGoal = async () => {
@@ -118,21 +121,24 @@ const GoalModal = ({ open, onOpenChange, suggestedGoals = [], onCreateGoal }: Go
     setRefining(false);
     setFollowUp("");
 
-    if (response.meta?.fallbackUsed) {
-      toast({
-        title: "Couldn't reach TINY",
-        description: "Check your connection and try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     const parts = [response.suggestion];
     if (response.nextStep) parts.push(`Next step: ${response.nextStep}`);
     if (response.timingSuggestion) parts.push(`Timing: ${response.timingSuggestion}`);
     setSuggestion(parts.join('\n\n'));
     setWhyText(response.rationale || "");
     setShowWhy(false);
+
+    if (response.meta?.fallbackUsed) {
+      console.warn('[tiny] fallback_displayed', {
+        localFallback: response.meta.localFallback ?? false,
+        fallbackReason: response.meta.fallbackReason ?? 'backend_fallback',
+      });
+      toast({
+        title: response.meta.localFallback ? "TINY is using backup mode" : "TINY used a safe backup",
+        description: "Showing a small next step while the full advice service catches up.",
+      });
+      return;
+    }
   };
 
   const handleClose = () => {
