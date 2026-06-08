@@ -218,6 +218,28 @@ function _normalizeTinyAdviceResponse(
   };
 }
 
+// Headers worth capturing when the scraper rejects us — they usually carry the
+// real reason (rate-limit window, upstream provider, retry hint).
+const SCRAPER_DIAG_HEADERS = [
+  'retry-after',
+  'x-ratelimit-limit',
+  'x-ratelimit-remaining',
+  'x-ratelimit-reset',
+  'x-upstream-status',
+  'x-upstream-provider',
+  'cf-ray',
+  'server',
+];
+
+function _collectDiagHeaders(resp: Response): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const h of SCRAPER_DIAG_HEADERS) {
+    const v = resp.headers.get(h);
+    if (v) out[h] = v;
+  }
+  return out;
+}
+
 async function _fetchScraperTinyAdvice(
   aiContext: Record<string, unknown>,
   coachStyle: string,
@@ -226,8 +248,19 @@ async function _fetchScraperTinyAdvice(
   const url = _scraperAdviceUrl();
   if (!url) return { advice: null, fallbackReason: 'scraper_url_missing' };
 
+  // Log the target host (not the path/key) so we can confirm which scraper
+  // deployment is being hit and how long the round-trip takes.
+  const host = (() => { try { return new URL(url).host; } catch { return 'invalid-url'; } })();
+  const startedAt = Date.now();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), env.SOCIAL_PROFILE_SCRAPER_TIMEOUT_MS);
+  console.info(
+    '[ADVICE] scraper_request host=%s timeoutMs=%d authed=%s platforms=%d',
+    host,
+    env.SOCIAL_PROFILE_SCRAPER_TIMEOUT_MS,
+    !!env.SOCIAL_PROFILE_SCRAPER_API_KEY,
+    socialPlatforms.length,
+  );
 
   try {
     const headers: Record<string, string> = {
@@ -245,22 +278,51 @@ async function _fetchScraperTinyAdvice(
       body: JSON.stringify({ aiContext }),
     });
 
+    const elapsedMs = Date.now() - startedAt;
+
     if (!resp.ok) {
-      console.warn('[ADVICE] source=fallback reason=scraper_status status=%s', resp.status);
+      // Capture the body + diagnostic headers. This is the missing piece: a 429
+      // body almost always says *why* (e.g. "quota exceeded", "rate limit",
+      // upstream provider name) and Retry-After says how long it lasts.
+      let body = '';
+      try { body = (await resp.text()).slice(0, 500); } catch { body = '<unreadable>'; }
+      const diag = _collectDiagHeaders(resp);
+      console.warn(
+        '[ADVICE] source=fallback reason=scraper_status host=%s status=%d elapsedMs=%d retryAfter=%s headers=%s body=%s',
+        host,
+        resp.status,
+        elapsedMs,
+        diag['retry-after'] ?? 'none',
+        JSON.stringify(diag),
+        body || '<empty>',
+      );
+      if (resp.status === 429) {
+        console.warn(
+          '[ADVICE] scraper_rate_limited host=%s — upstream is throttling/over quota. Inspect body/Retry-After above to find the source (scraper limiter vs. its AI provider).',
+          host,
+        );
+      }
       return { advice: null, fallbackReason: `scraper_status_${resp.status}` };
     }
 
     const normalized = _normalizeTinyAdviceResponse(await resp.json(), coachStyle, socialPlatforms);
     if (!normalized) {
-      console.warn('[ADVICE] source=fallback reason=scraper_malformed');
+      console.warn('[ADVICE] source=fallback reason=scraper_malformed host=%s elapsedMs=%d', host, elapsedMs);
       return { advice: null, fallbackReason: 'scraper_malformed' };
     }
 
-    console.info('[ADVICE] source=scraper providersConnected=%d', socialPlatforms.length);
+    console.info('[ADVICE] source=scraper host=%s elapsedMs=%d providersConnected=%d', host, elapsedMs, socialPlatforms.length);
     return { advice: normalized };
   } catch (err: any) {
+    const elapsedMs = Date.now() - startedAt;
     const fallbackReason = err?.name === 'AbortError' ? 'scraper_timeout' : `scraper_error_${err?.name || 'unknown'}`;
-    console.warn('[ADVICE] source=fallback reason=%s error=%s', fallbackReason, err?.message || 'unknown');
+    console.warn(
+      '[ADVICE] source=fallback reason=%s host=%s elapsedMs=%d error=%s',
+      fallbackReason,
+      host,
+      elapsedMs,
+      err?.message || 'unknown',
+    );
     return { advice: null, fallbackReason };
   } finally {
     clearTimeout(timeout);
@@ -422,14 +484,27 @@ export async function tinyAdvice(
     );
     if (scraperResult.advice) return scraperResult.advice;
 
-    console.warn('[ADVICE] source=fallback reason=%s', scraperResult.fallbackReason);
-    return {
-      ...fallback,
-      meta: {
-        ...fallback.meta!,
-        fallbackReason: scraperResult.fallbackReason,
-      },
-    };
+    // Scraper failed (429/timeout/etc). Before serving canned text, try the
+    // direct AI provider if one is configured — this is what keeps real advice
+    // flowing while the scraper is rate-limited. Only return the local fallback
+    // when there is no provider to fall through to.
+    if (primaryClient) {
+      console.warn(
+        '[ADVICE] scraper unavailable (reason=%s) — falling through to direct provider=%s',
+        scraperResult.fallbackReason,
+        primaryModelName,
+      );
+      fallback.meta!.fallbackReason = scraperResult.fallbackReason;
+    } else {
+      console.warn('[ADVICE] source=fallback reason=%s (no direct provider configured)', scraperResult.fallbackReason);
+      return {
+        ...fallback,
+        meta: {
+          ...fallback.meta!,
+          fallbackReason: scraperResult.fallbackReason,
+        },
+      };
+    }
   }
 
   if (!primaryClient) {
@@ -504,6 +579,7 @@ export async function tinyAdvice(
     return fallback;
   }
 
+  console.info('[ADVICE] source=provider model=%s socialContext=%s', primaryModelName, socialPlatforms.length > 0);
   return {
     ok:               true,
     suggestion:       reply.suggestion.trim(),
@@ -516,6 +592,7 @@ export async function tinyAdvice(
       fallbackUsed:      false,
       socialContextUsed: socialPlatforms.length > 0,
       providersConnected: socialPlatforms,
+      adviceSource:      'provider',
     },
   };
 }
