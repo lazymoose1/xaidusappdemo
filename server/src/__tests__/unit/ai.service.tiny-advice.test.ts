@@ -122,6 +122,7 @@ describe('tinyAdvice scraper integration', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-xaidus-service': 'xaidusappdemo',
           Authorization: 'Bearer scraper-secret',
         },
       }),
@@ -136,8 +137,14 @@ describe('tinyAdvice scraper integration', () => {
 
     const result = await tinyAdvice('teen-1', { goal: 'Finish algebra homework' });
 
-    expect(result.ok).toBe(false);
-    expect(result.meta).toMatchObject({ fallbackUsed: true, socialContextUsed: false });
+    // The safe fallback is still a valid (ok) response; callers detect it via
+    // meta.fallbackUsed / fallbackReason, not via ok.
+    expect(result.ok).toBe(true);
+    expect(result.meta).toMatchObject({
+      fallbackUsed: true,
+      socialContextUsed: false,
+      fallbackReason: 'scraper_status_503',
+    });
     expect(result.suggestion).toContain('Take 10 minutes');
   });
 
@@ -151,7 +158,8 @@ describe('tinyAdvice scraper integration', () => {
 
     const result = await tinyAdvice('teen-1', { goal: 'Finish algebra homework' });
 
-    expect(result.ok).toBe(false);
+    expect(result.ok).toBe(true);
     expect(result.meta?.fallbackUsed).toBe(true);
+    expect(result.meta?.fallbackReason).toBe('scraper_malformed');
   });
 });

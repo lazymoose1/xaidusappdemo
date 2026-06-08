@@ -233,6 +233,8 @@ const SCRAPER_DIAG_HEADERS = [
 
 function _collectDiagHeaders(resp: Response): Record<string, string> {
   const out: Record<string, string> = {};
+  // Diagnostic-only: never let header inspection throw and change the outcome.
+  if (!resp.headers || typeof resp.headers.get !== 'function') return out;
   for (const h of SCRAPER_DIAG_HEADERS) {
     const v = resp.headers.get(h);
     if (v) out[h] = v;
