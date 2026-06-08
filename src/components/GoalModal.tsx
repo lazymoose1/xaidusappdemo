@@ -34,6 +34,8 @@ const GoalModal = ({ open, onOpenChange, suggestedGoals = [], onCreateGoal }: Go
   const [goal, setGoal] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
   const [suggestion, setSuggestion] = useState("");
+  const [nextStep, setNextStep] = useState("");
+  const [timing, setTiming] = useState("");
   const [whyText, setWhyText] = useState("");
   const [showWhy, setShowWhy] = useState(false);
   const [followUp, setFollowUp] = useState("");
@@ -73,6 +75,8 @@ const GoalModal = ({ open, onOpenChange, suggestedGoals = [], onCreateGoal }: Go
 
     setAnalyzing(true);
     setSuggestion("");
+    setNextStep("");
+    setTiming("");
     setWhyText("");
     setShowWhy(false);
 
@@ -87,10 +91,9 @@ const GoalModal = ({ open, onOpenChange, suggestedGoals = [], onCreateGoal }: Go
 
     setAnalyzing(false);
 
-    const parts = [response.suggestion];
-    if (response.nextStep) parts.push(`Next step: ${response.nextStep}`);
-    if (response.timingSuggestion) parts.push(`Timing: ${response.timingSuggestion}`);
-    setSuggestion(parts.join('\n\n'));
+    setSuggestion(response.suggestion);
+    setNextStep(response.nextStep || "");
+    setTiming(response.timingSuggestion || "");
     setWhyText(response.rationale || "");
 
     if (response.meta?.fallbackUsed) {
@@ -121,10 +124,9 @@ const GoalModal = ({ open, onOpenChange, suggestedGoals = [], onCreateGoal }: Go
     setRefining(false);
     setFollowUp("");
 
-    const parts = [response.suggestion];
-    if (response.nextStep) parts.push(`Next step: ${response.nextStep}`);
-    if (response.timingSuggestion) parts.push(`Timing: ${response.timingSuggestion}`);
-    setSuggestion(parts.join('\n\n'));
+    setSuggestion(response.suggestion);
+    setNextStep(response.nextStep || "");
+    setTiming(response.timingSuggestion || "");
     setWhyText(response.rationale || "");
     setShowWhy(false);
 
@@ -144,6 +146,8 @@ const GoalModal = ({ open, onOpenChange, suggestedGoals = [], onCreateGoal }: Go
   const handleClose = () => {
     setGoal("");
     setSuggestion("");
+    setNextStep("");
+    setTiming("");
     setWhyText("");
     setShowWhy(false);
     setFollowUp("");
@@ -254,13 +258,42 @@ const GoalModal = ({ open, onOpenChange, suggestedGoals = [], onCreateGoal }: Go
           )}
 
           {suggestion && (
-            <div className="space-y-4 animate-fade-in flex-1 min-h-0 flex flex-col">
-              <div className="w-full flex-1 min-h-[200px] max-h-[50dvh] overflow-y-auto pr-3 sm:max-h-[70vh]">
-                <div className="speech-bubble border-2 border-accent/20">
-                  <p className="text-accent leading-relaxed font-medium break-words whitespace-pre-wrap">{suggestion}</p>
-                </div>
-              </div>
+            <div className="space-y-4 animate-fade-in">
+              {/* Suggestion */}
+              <section className="speech-bubble border-2 border-accent/20">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-accent/70">
+                  Tiny suggests
+                </p>
+                <p className="mt-1.5 text-accent leading-relaxed font-medium break-words whitespace-pre-wrap">
+                  {suggestion}
+                </p>
+              </section>
 
+              {/* Next step — kept in normal flow so it stays visible without a nested scroll */}
+              {nextStep && (
+                <section className="rounded-2xl border-2 border-accent/30 bg-accent/10 px-4 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-accent">
+                    Your next step
+                  </p>
+                  <p className="mt-1.5 text-base font-semibold leading-relaxed text-foreground break-words">
+                    {nextStep}
+                  </p>
+                  {timing && (
+                    <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1 text-xs font-medium text-accent">
+                      🕒 Best time: {timing}
+                    </span>
+                  )}
+                </section>
+              )}
+
+              {/* Timing on its own when there's no next step */}
+              {!nextStep && timing && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1 text-xs font-medium text-accent">
+                  🕒 Best time: {timing}
+                </span>
+              )}
+
+              {/* Why (rationale) */}
               {whyText && (
                 <div className="space-y-2">
                   <Button
@@ -269,7 +302,7 @@ const GoalModal = ({ open, onOpenChange, suggestedGoals = [], onCreateGoal }: Go
                     onClick={() => setShowWhy((prev) => !prev)}
                     className="w-full rounded-full border-accent/30 text-foreground h-auto whitespace-normal break-words"
                   >
-                    {showWhy ? "Hide why" : "Why"}
+                    {showWhy ? "Hide why" : "Why this matters"}
                   </Button>
 
                   {showWhy && (
@@ -284,7 +317,21 @@ const GoalModal = ({ open, onOpenChange, suggestedGoals = [], onCreateGoal }: Go
                   )}
                 </div>
               )}
-              
+
+              {/* Primary action */}
+              {onCreateGoal && goal.trim() && (
+                <Button
+                  onClick={() => {
+                    onCreateGoal(goal.trim());
+                    handleClose();
+                  }}
+                  className="w-full rounded-full bg-accent py-6 text-base font-semibold text-accent-foreground hover:bg-accent/90 h-auto whitespace-normal break-words"
+                >
+                  Use this step
+                </Button>
+              )}
+
+              {/* Refine */}
               <div className="space-y-3">
                 <Textarea
                   placeholder="Add more details to refine the suggestion..."
@@ -293,12 +340,13 @@ const GoalModal = ({ open, onOpenChange, suggestedGoals = [], onCreateGoal }: Go
                   className="min-h-[80px] resize-none border-accent/30 focus:border-accent rounded-2xl"
                   disabled={refining}
                 />
-                
+
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <Button
                     onClick={refineGoal}
                     disabled={!followUp.trim() || refining}
-                    className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground font-semibold rounded-full h-auto whitespace-normal"
+                    variant="outline"
+                    className="flex-1 rounded-full border-accent/30 text-foreground font-semibold h-auto whitespace-normal"
                   >
                     {refining ? (
                       <>
@@ -318,18 +366,6 @@ const GoalModal = ({ open, onOpenChange, suggestedGoals = [], onCreateGoal }: Go
                     Got it ✓
                   </Button>
                 </div>
-                {onCreateGoal && goal.trim() && (
-                  <Button
-                    onClick={() => {
-                      onCreateGoal(goal.trim());
-                      handleClose();
-                    }}
-                    variant="outline"
-                    className="w-full rounded-full border-accent/30 text-foreground h-auto whitespace-normal break-words"
-                  >
-                    Set this as a goal →
-                  </Button>
-                )}
               </div>
             </div>
           )}
