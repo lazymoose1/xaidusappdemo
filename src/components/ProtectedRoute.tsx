@@ -15,7 +15,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   useEffect(() => {
     if (!loading && !isResolvingProfile && !user) {
-      navigate('/auth');
+      navigate('/welcome');
     }
   }, [user, loading, isResolvingProfile, navigate]);
 
