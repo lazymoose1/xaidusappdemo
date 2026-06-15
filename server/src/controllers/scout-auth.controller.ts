@@ -1,11 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
-import { User, Troop, writeAuditLog } from '../models';
+import { User, Troop, Goal, writeAuditLog } from '../models';
 import {
   hashPin,
   verifyPin,
   issueScoutJwt,
   scoutSyntheticEmail,
 } from '../services/scout-auth.service';
+
+// Self-signup teens have no leader/troop; this sentinel namespaces their
+// synthetic email and JWT so they never collide with a real troop's youth.
+const SELF_SIGNUP_TROOP = 'SELF';
 
 /**
  * POST /api/scout-auth/login
@@ -43,6 +47,119 @@ export async function scoutLogin(req: Request, res: Response, next: NextFunction
         troopCode: scout.troop_code,
         isScoutAccount: true,
         isScoutMember: true,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * POST /api/scout-auth/signup
+ * Public. Body: { username, passphrase, reason? }
+ * Self-service teen signup (no leader/troop). Creates the account, stores the
+ * reason as motivation + seeds it as a first goal, and returns a session token.
+ */
+export async function selfSignup(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { username, passphrase, reason } = req.body as {
+      username: string;
+      passphrase: string;
+      reason?: string;
+    };
+
+    const syntheticEmail = scoutSyntheticEmail(username, SELF_SIGNUP_TROOP);
+
+    const existing = await User.findOne({ email: syntheticEmail }).lean();
+    if (existing) {
+      return res.status(409).json({ error: 'That username is taken. Try another.' });
+    }
+
+    const pinHash = await hashPin(passphrase);
+    const trimmedReason = (reason || '').trim();
+
+    const scout = await User.create({
+      auth_id: `self_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      email: syntheticEmail,
+      display_name: username.trim(),
+      role: 'teen',
+      is_scout_account: true,
+      scout_pin_hash: pinHash,
+      troop_code: SELF_SIGNUP_TROOP,
+      interests: [],
+      reminder_windows: [],
+      ...(trimmedReason ? { signup_reason: trimmedReason } : {}),
+    });
+
+    // Seed the reason as their first goal so the Goals/TINY flow has a starting point.
+    if (trimmedReason) {
+      await Goal.create({
+        user_id: scout._id,
+        title: trimmedReason.slice(0, 120),
+        category: 'personal',
+        status: 'active',
+        completed: false,
+        source: 'signup',
+      });
+    }
+
+    const token = issueScoutJwt({
+      sub: (scout._id as any).toString(),
+      role: 'scout',
+      troopCode: SELF_SIGNUP_TROOP,
+      nickname: scout.display_name,
+    });
+
+    return res.status(201).json({
+      token,
+      user: {
+        id: (scout._id as any).toString(),
+        role: scout.role,
+        displayName: scout.display_name,
+        troopCode: scout.troop_code,
+        isScoutAccount: true,
+        isScoutMember: false,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * POST /api/scout-auth/login-username
+ * Public. Body: { username, passphrase }
+ * Login for self-signup teens (username + passphrase, no troop code).
+ */
+export async function selfLogin(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { username, passphrase } = req.body as { username: string; passphrase: string };
+
+    const syntheticEmail = scoutSyntheticEmail(username, SELF_SIGNUP_TROOP);
+    const scout = await User.findOne({ email: syntheticEmail, is_scout_account: true }).lean();
+    if (!scout || !scout.scout_pin_hash) {
+      return res.status(401).json({ error: 'Username or passphrase is incorrect' });
+    }
+
+    const ok = await verifyPin(passphrase, scout.scout_pin_hash);
+    if (!ok) return res.status(401).json({ error: 'Username or passphrase is incorrect' });
+
+    const token = issueScoutJwt({
+      sub: (scout._id as any).toString(),
+      role: 'scout',
+      troopCode: scout.troop_code || SELF_SIGNUP_TROOP,
+      nickname: scout.display_name,
+    });
+
+    return res.json({
+      token,
+      user: {
+        id: (scout._id as any).toString(),
+        role: scout.role,
+        displayName: scout.display_name,
+        troopCode: scout.troop_code,
+        isScoutAccount: true,
+        isScoutMember: false,
       },
     });
   } catch (err) {

@@ -124,14 +124,18 @@ const ParentAuthPage = () => {
         )}
         <CardHeader className="space-y-2 pb-4 sm:pb-5">
           <Link
-            to="/auth"
+            to="/welcome"
             className="text-sm text-muted-foreground hover:text-primary transition-colors"
           >
             ← Back
           </Link>
-          <div className="flex justify-center">
+          <Link
+            to="/welcome"
+            className="mx-auto flex justify-center rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            aria-label="Back to sign-in options"
+          >
             <BrandWordmark />
-          </div>
+          </Link>
           <CardTitle className="text-2xl sm:text-3xl font-serif text-center text-foreground break-words">
             Welcome to Xaidus
           </CardTitle>
@@ -140,9 +144,9 @@ const ParentAuthPage = () => {
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-5 sm:space-y-6">
-          {/* Phase II reframing — shown before the form */}
-          <div className="space-y-3 pb-1 sm:pb-2">
+        <CardContent className="flex flex-col gap-5 sm:gap-6">
+          {/* Reframing intro — above the form when creating an account, below it when signing in */}
+          <div className={`space-y-3 pb-1 sm:pb-2 ${activeTab === "signin" ? "order-2" : "order-1"}`}>
             <div className="rounded-2xl border border-border/70 bg-card/90 p-4">
               <div className="flex flex-col gap-3 xl:flex-row xl:items-start">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-muted/70 xl:h-14 xl:w-14">
@@ -181,6 +185,7 @@ const ParentAuthPage = () => {
           <Tabs
             value={activeTab}
             onValueChange={(v) => setActiveTab(v as "signin" | "create")}
+            className={activeTab === "signin" ? "order-1" : "order-2"}
           >
             <TabsList className="w-full mb-6">
               <TabsTrigger value="signin" className="flex-1 min-w-0 text-xs sm:text-sm">
