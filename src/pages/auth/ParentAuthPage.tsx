@@ -175,7 +175,7 @@ const ParentAuthPage = () => {
                   <Award className="h-5 w-5 text-foreground/85" />
                 </div>
                 <div className="min-w-0 space-y-1">
-                <p className="text-base font-medium leading-tight text-foreground">A record that follows her</p>
+                <p className="text-base font-medium leading-tight text-foreground">A record that follows them</p>
                 <p className="text-sm leading-6 text-muted-foreground">Every achievement is permanently and independently verified, ready for scholarships, applications, and beyond.</p>
                 </div>
               </div>
