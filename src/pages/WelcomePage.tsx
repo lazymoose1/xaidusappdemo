@@ -84,16 +84,16 @@ const WelcomePage = () => {
               key={key}
               type="button"
               onClick={() => navigate(to)}
-              className="group flex w-full items-center gap-4 rounded-[1.4rem] border border-white/10 bg-background/75 px-4 py-4 text-left transition hover:border-accent/50 hover:bg-accent/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="group flex w-full items-center gap-3 rounded-2xl border border-white/10 bg-background/75 p-4 text-left transition hover:border-accent/50 hover:bg-accent/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
-              <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-[1.1rem] bg-muted/75 text-foreground/90">
-                <Icon className="h-6 w-6" />
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-muted text-foreground">
+                <Icon className="h-5 w-5" />
               </span>
-              <span className="min-w-0 flex-1">
+              <span className="min-w-0 flex-1 basis-0">
                 <span className="block text-base font-semibold text-foreground">I’m a {title}</span>
-                <span className="block text-xs leading-5 text-muted-foreground break-words">{blurb}</span>
+                <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">{blurb}</span>
               </span>
-              <ArrowRight className="h-5 w-5 flex-shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-accent" />
+              <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-accent" />
             </button>
           ))}
 
