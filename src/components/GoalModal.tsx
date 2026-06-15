@@ -38,6 +38,7 @@ const GoalModal = ({ open, onOpenChange, suggestedGoals = [], onCreateGoal }: Go
   const [timing, setTiming] = useState("");
   const [whyText, setWhyText] = useState("");
   const [showWhy, setShowWhy] = useState(false);
+  const [showRefine, setShowRefine] = useState(false);
   const [followUp, setFollowUp] = useState("");
   const [refining, setRefining] = useState(false);
   const [selectedSuggestion, setSelectedSuggestion] = useState<SuggestedGoal | null>(null);
@@ -153,6 +154,7 @@ const GoalModal = ({ open, onOpenChange, suggestedGoals = [], onCreateGoal }: Go
     setFollowUp("");
     setSelectedSuggestion(null);
     setAttachments([]);
+    setShowRefine(false);
     onOpenChange(false);
   };
 
@@ -177,114 +179,99 @@ const GoalModal = ({ open, onOpenChange, suggestedGoals = [], onCreateGoal }: Go
 
         <ScrollArea className="min-h-0 flex-1 px-1">
           <div className="space-y-4 pb-2 pt-2 overscroll-contain">
-          {suggestedGoals.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">Suggested Goals</p>
-              <div className="grid gap-2">
-                {suggestedGoals.map((g, idx) => (
-                  <Button key={idx} variant={selectedSuggestion?.title === g.title ? 'default' : 'outline'} className="justify-start h-auto whitespace-normal break-words text-left py-2" onClick={() => { setSelectedSuggestion(g); setGoal(g.title); }}>
-                    {g.title}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
-          <div>
-            <Textarea
-              id="goal"
-              placeholder="e.g., Finish my Xaidus landing page..."
-              value={goal}
-              onChange={(e) => setGoal(e.target.value)}
-              className="min-h-[120px] resize-none border-accent/30 focus:border-accent rounded-2xl"
-              disabled={analyzing}
-            />
-          </div>
-
-          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-full h-auto whitespace-normal break-words"
-              onClick={() => {
-                const input = document.createElement('input');
-                input.type = 'file';
-                input.accept = 'image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-                input.onchange = () => handleFileSelect(input.files?.[0] || undefined);
-                input.click();
-              }}
-              disabled={uploading}
-            >
-              {uploading ? 'Uploading…' : 'Attach file/image'}
-            </Button>
-            {attachments.length > 0 && (
-              <span className="text-xs text-muted-foreground sm:shrink-0">{attachments.length} attached</span>
-            )}
-          </div>
-
-          {attachments.length > 0 && (
-            <div className="flex flex-wrap gap-2 text-xs text-foreground">
-              {attachments.map((file, idx) => (
-                <div key={idx} className="flex max-w-full items-center gap-2 rounded-full border border-accent/30 px-3 py-1 bg-accent/5 min-w-0">
-                  <span className="truncate max-w-[140px]">{file.name}</span>
-                  <button
-                    aria-label="Remove attachment"
-                    className="text-muted-foreground hover:text-foreground"
-                    onClick={() => setAttachments((prev) => prev.filter((_, i) => i !== idx))}
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
           {!suggestion && (
-            <Button
-              onClick={analyzeGoal}
-              disabled={!goal.trim() || analyzing}
-              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-semibold rounded-full py-6"
-            >
-              {analyzing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Thinking...
-                </>
-              ) : (
-                <>
-                  Ask Tiny
-                </>
+            <>
+              {suggestedGoals.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Suggested Goals</p>
+                  <div className="grid gap-2">
+                    {suggestedGoals.map((g, idx) => (
+                      <Button key={idx} variant={selectedSuggestion?.title === g.title ? 'default' : 'outline'} className="justify-start h-auto whitespace-normal break-words text-left py-2" onClick={() => { setSelectedSuggestion(g); setGoal(g.title); }}>
+                        {g.title}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
               )}
-            </Button>
+              <div>
+                <Textarea
+                  id="goal"
+                  placeholder="e.g., Finish my Xaidus landing page..."
+                  value={goal}
+                  onChange={(e) => setGoal(e.target.value)}
+                  className="min-h-[120px] resize-none border-accent/30 focus:border-accent rounded-2xl"
+                  disabled={analyzing}
+                />
+              </div>
+
+              <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-full h-auto whitespace-normal break-words"
+                  onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = 'image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+                    input.onchange = () => handleFileSelect(input.files?.[0] || undefined);
+                    input.click();
+                  }}
+                  disabled={uploading}
+                >
+                  {uploading ? 'Uploading…' : 'Attach file/image'}
+                </Button>
+                {attachments.length > 0 && (
+                  <span className="text-xs text-muted-foreground sm:shrink-0">{attachments.length} attached</span>
+                )}
+              </div>
+
+              {attachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 text-xs text-foreground">
+                  {attachments.map((file, idx) => (
+                    <div key={idx} className="flex max-w-full items-center gap-2 rounded-full border border-accent/30 px-3 py-1 bg-accent/5 min-w-0">
+                      <span className="truncate max-w-[140px]">{file.name}</span>
+                      <button
+                        aria-label="Remove attachment"
+                        className="text-muted-foreground hover:text-foreground"
+                        onClick={() => setAttachments((prev) => prev.filter((_, i) => i !== idx))}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
           {suggestion && (
             <div className="space-y-4 animate-fade-in">
-              {/* Suggestion */}
-              <section className="speech-bubble border-2 border-accent/20">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-accent/70">
-                  Tiny suggests
-                </p>
-                <p className="mt-1.5 text-accent leading-relaxed font-medium break-words whitespace-pre-wrap">
-                  {suggestion}
-                </p>
-              </section>
-
-              {/* Next step — kept in normal flow so it stays visible without a nested scroll */}
+              {/* Next step — the hero for younger teens: shown first and largest */}
               {nextStep && (
-                <section className="rounded-2xl border-2 border-accent/30 bg-accent/10 px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-accent">
+                <section className="rounded-2xl border-2 border-accent/40 bg-accent/10 px-4 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-accent">
                     Your next step
                   </p>
-                  <p className="mt-1.5 text-base font-semibold leading-relaxed text-foreground break-words">
+                  <p className="mt-2 text-lg font-semibold leading-snug text-foreground break-words">
                     {nextStep}
                   </p>
                   {timing && (
-                    <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1 text-xs font-medium text-accent">
+                    <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-accent/15 px-3 py-1 text-xs font-medium text-accent">
                       🕒 Best time: {timing}
                     </span>
                   )}
                 </section>
               )}
+
+              {/* Full suggestion — secondary context, capped so the step stays on top */}
+              <section className="speech-bubble border-2 border-accent/20">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-accent/70">
+                  Tiny suggests
+                </p>
+                <p className="mt-1.5 text-accent leading-relaxed font-medium break-words whitespace-pre-wrap line-clamp-4">
+                  {suggestion}
+                </p>
+              </section>
 
               {/* Timing on its own when there's no next step */}
               {!nextStep && timing && (
@@ -293,24 +280,20 @@ const GoalModal = ({ open, onOpenChange, suggestedGoals = [], onCreateGoal }: Go
                 </span>
               )}
 
-              {/* Why (rationale) */}
+              {/* Why (rationale) — quiet link to avoid competing with the step */}
               {whyText && (
                 <div className="space-y-2">
-                  <Button
+                  <button
                     type="button"
-                    variant="outline"
                     onClick={() => setShowWhy((prev) => !prev)}
-                    className="w-full rounded-full border-accent/30 text-foreground h-auto whitespace-normal break-words"
+                    className="text-sm font-medium text-accent underline-offset-4 hover:underline"
                   >
                     {showWhy ? "Hide why" : "Why this matters"}
-                  </Button>
+                  </button>
 
                   {showWhy && (
                     <div className="rounded-2xl border border-accent/20 bg-accent/5 px-4 py-3">
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        Why this matters
-                      </p>
-                      <p className="mt-2 text-sm text-foreground leading-relaxed break-words">
+                      <p className="text-sm text-foreground leading-relaxed break-words">
                         {whyText}
                       </p>
                     </div>
@@ -318,7 +301,67 @@ const GoalModal = ({ open, onOpenChange, suggestedGoals = [], onCreateGoal }: Go
                 </div>
               )}
 
-              {/* Primary action */}
+              {/* Tweak it (refine) — collapsed to keep one clear decision on screen */}
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setShowRefine((prev) => !prev)}
+                  className="text-sm font-medium text-muted-foreground underline-offset-4 hover:underline"
+                >
+                  {showRefine ? "Hide tweak" : "Tweak it"}
+                </button>
+
+                {showRefine && (
+                  <div className="space-y-3">
+                    <Textarea
+                      placeholder="Add more details to refine the suggestion..."
+                      value={followUp}
+                      onChange={(e) => setFollowUp(e.target.value)}
+                      className="min-h-[80px] resize-none border-accent/30 focus:border-accent rounded-2xl"
+                      disabled={refining}
+                    />
+                    <Button
+                      onClick={refineGoal}
+                      disabled={!followUp.trim() || refining}
+                      variant="outline"
+                      className="w-full rounded-full border-accent/30 text-foreground font-semibold h-auto whitespace-normal"
+                    >
+                      {refining ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Refining...
+                        </>
+                      ) : (
+                        "Refine"
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          </div>
+        </ScrollArea>
+
+        {/* Pinned action footer — the primary action stays reachable without scrolling */}
+        <div className="flex-shrink-0 border-t border-white/10 -mx-4 mt-2 px-4 pt-3 sm:-mx-6 sm:px-6">
+          {!suggestion ? (
+            <Button
+              onClick={analyzeGoal}
+              disabled={!goal.trim() || analyzing}
+              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground font-semibold rounded-full py-6 text-base"
+            >
+              {analyzing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Thinking...
+                </>
+              ) : (
+                "Ask Tiny"
+              )}
+            </Button>
+          ) : (
+            <div className="space-y-2">
               {onCreateGoal && goal.trim() && (
                 <Button
                   onClick={() => {
@@ -330,47 +373,16 @@ const GoalModal = ({ open, onOpenChange, suggestedGoals = [], onCreateGoal }: Go
                   Use this step
                 </Button>
               )}
-
-              {/* Refine */}
-              <div className="space-y-3">
-                <Textarea
-                  placeholder="Add more details to refine the suggestion..."
-                  value={followUp}
-                  onChange={(e) => setFollowUp(e.target.value)}
-                  className="min-h-[80px] resize-none border-accent/30 focus:border-accent rounded-2xl"
-                  disabled={refining}
-                />
-
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Button
-                    onClick={refineGoal}
-                    disabled={!followUp.trim() || refining}
-                    variant="outline"
-                    className="flex-1 rounded-full border-accent/30 text-foreground font-semibold h-auto whitespace-normal"
-                  >
-                    {refining ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Refining...
-                      </>
-                    ) : (
-                      "Refine"
-                    )}
-                  </Button>
-
-                  <Button
-                    onClick={handleClose}
-                    variant="ghost"
-                    className="flex-1 text-accent hover:bg-accent/10 rounded-full h-auto whitespace-normal"
-                  >
-                    Got it ✓
-                  </Button>
-                </div>
-              </div>
+              <Button
+                onClick={handleClose}
+                variant="ghost"
+                className="w-full text-accent hover:bg-accent/10 rounded-full h-auto whitespace-normal"
+              >
+                Got it ✓
+              </Button>
             </div>
           )}
-          </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );

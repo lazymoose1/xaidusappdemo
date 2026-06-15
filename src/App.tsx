@@ -25,6 +25,7 @@ const SettingsPage = lazy(() => import("./pages/SettingsPage"));
 const MessagesPage = lazy(() => import("./pages/MessagesPage"));
 const ThreadDetailPage = lazy(() => import("./pages/ThreadDetailPage"));
 const ParentDashboard = lazy(() => import("./pages/ParentDashboard"));
+const WelcomePage = lazy(() => import("./pages/WelcomePage"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
 const ParentSignupPage = lazy(() => import("./pages/ParentSignupPage"));
 const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
@@ -77,6 +78,7 @@ const AppContent = () => {
       )}
       <Suspense fallback={<PageSkeleton />}>
         <Routes>
+          <Route path="/welcome" element={<WelcomePage />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/auth/parent" element={<ParentAuthPage />} />
           <Route path="/auth/leader" element={<LeaderAuthPage />} />
@@ -106,7 +108,7 @@ const AppContent = () => {
         <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
-      {!location.pathname.startsWith('/auth') && location.pathname !== '/parent-signup' && location.pathname !== '/onboarding' && location.pathname !== '/scout-onboarding' && (
+      {!location.pathname.startsWith('/auth') && location.pathname !== '/welcome' && location.pathname !== '/parent-signup' && location.pathname !== '/onboarding' && location.pathname !== '/scout-onboarding' && (
         <BottomNav />
       )}
     </div>

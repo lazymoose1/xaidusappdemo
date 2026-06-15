@@ -44,7 +44,7 @@ describe('ProtectedRoute', () => {
     expect(screen.queryByText('Protected Content')).not.toBeInTheDocument();
   });
 
-  it('navigates to /auth when user is null and loading is false', async () => {
+  it('navigates to /welcome when user is null and loading is false', async () => {
     mockUseAuth.mockReturnValue({
       user: null,
       session: null,
@@ -61,7 +61,7 @@ describe('ProtectedRoute', () => {
     );
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/auth');
+      expect(mockNavigate).toHaveBeenCalledWith('/welcome');
     });
     expect(screen.queryByText('Protected Content')).not.toBeInTheDocument();
   });
