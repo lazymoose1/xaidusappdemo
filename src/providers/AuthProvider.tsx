@@ -23,7 +23,7 @@ interface AuthContextType {
   signUpLeader: (email: string, password: string, displayName?: string, leaderInviteCode?: string, organizationType?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   scoutSignIn: (troopCode: string, nickname: string, pin: string) => Promise<{ error: Error | null }>;
-  scoutSelfSignUp: (username: string, passphrase: string, reason?: string) => Promise<{ error: Error | null }>;
+  scoutSelfSignUp: (username: string, passphrase: string, reason?: string, inviteCode?: string) => Promise<{ error: Error | null }>;
   scoutSelfSignIn: (username: string, passphrase: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -281,9 +281,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setProfileStatus('loaded');
   };
 
-  const scoutSelfSignUp = async (username: string, passphrase: string, reason?: string): Promise<{ error: Error | null }> => {
+  const scoutSelfSignUp = async (username: string, passphrase: string, reason?: string, inviteCode?: string): Promise<{ error: Error | null }> => {
     try {
-      const { token, user: scoutUser } = await scoutAuthApi.selfSignup({ username, passphrase, reason });
+      const { token, user: scoutUser } = await scoutAuthApi.selfSignup({ username, passphrase, reason, inviteCode });
       establishScoutSession(token, scoutUser);
       return { error: null };
     } catch (err) {

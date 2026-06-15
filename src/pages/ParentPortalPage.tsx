@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import ParentDisclaimerModal from "@/components/ParentDisclaimerModal";
 import BrandWordmark from "@/components/BrandWordmark";
 import { parentPortalApi } from "@/api/endpoints";
+import { toast } from "@/hooks/use-toast";
 import type { ApiParentChild, ApiWeeklySummary } from "@/types/api";
 
 const fallbackSnapshot: ApiWeeklySummary = {
@@ -26,20 +27,26 @@ const ParentPortalPage = () => {
   const [showDisclaimer, setShowDisclaimer] = useState(true);
   const [teens, setTeens] = useState<ApiParentChild[]>([]);
   const [weeklySnapshot, setWeeklySnapshot] = useState<ApiWeeklySummary>(fallbackSnapshot);
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadPortal = async () => {
       setLoading(true);
-      const [childrenResult, snapshotResult] = await Promise.allSettled([
+      const [childrenResult, snapshotResult, inviteResult] = await Promise.allSettled([
         parentPortalApi.getChildren(),
         parentPortalApi.getWeeklySummary(),
+        parentPortalApi.getInviteCode(),
       ]);
 
       if (childrenResult.status === "fulfilled") {
         setTeens(Array.isArray(childrenResult.value) ? childrenResult.value : []);
       } else {
         setTeens([]);
+      }
+
+      if (inviteResult.status === "fulfilled" && inviteResult.value?.code) {
+        setInviteCode(inviteResult.value.code);
       }
 
       if (snapshotResult.status === "fulfilled") {
@@ -141,6 +148,35 @@ const ParentPortalPage = () => {
               </div>
             </div>
           </Card>
+
+          {inviteCode && (
+            <Card className="p-5 border-accent/30 bg-accent/5">
+              <div className="space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-accent">Invite your teen</p>
+                <p className="text-sm text-muted-foreground">
+                  Share this code. When your teen enters it while creating their account, they’ll be linked to you automatically.
+                </p>
+                <div className="flex items-center gap-3">
+                  <span className="rounded-xl border border-accent/30 bg-background px-4 py-2 font-mono text-xl font-semibold tracking-[0.2em] text-foreground">
+                    {inviteCode}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-full"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(inviteCode).then(
+                        () => toast({ title: "Copied", description: "Invite code copied to clipboard." }),
+                        () => {},
+                      );
+                    }}
+                  >
+                    Copy
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
 
           {loading ? (
             <>

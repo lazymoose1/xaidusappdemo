@@ -7,6 +7,7 @@ const parentRoles = ['parent', 'educator', 'admin'];
 
 router.get('/overview', authMiddleware, requireRole(parentRoles), parentPortalController.getOverview);
 router.get('/children', authMiddleware, requireRole(parentRoles), parentPortalController.getChildren);
+router.get('/invite-code', authMiddleware, requireRole(parentRoles), parentPortalController.getInviteCode);
 router.post('/children', authMiddleware, requireRole(parentRoles), parentPortalController.addChild);
 router.get('/weekly-summary', authMiddleware, requireRole(parentRoles), parentPortalController.getWeeklySummary);
 router.post('/weekly-summary/send', authMiddleware, requireRole(parentRoles), parentPortalController.sendWeeklySummary);

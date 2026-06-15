@@ -1,7 +1,36 @@
+import crypto from 'crypto';
 import * as parentChildLinkRepo from '../repositories/parent-child-link.repo';
 import * as goalRepo from '../repositories/goal.repo';
 import * as aiGoalFeedbackRepo from '../repositories/ai-goal-feedback.repo';
 import * as userRepo from '../repositories/user.repo';
+import { User } from '../models';
+
+// Excludes ambiguous characters (0/O, 1/I/L) so codes are easy to read and share.
+const INVITE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+function generateInviteCode(length = 6): string {
+  let out = '';
+  for (let i = 0; i < length; i++) {
+    out += INVITE_ALPHABET[crypto.randomInt(0, INVITE_ALPHABET.length)];
+  }
+  return out;
+}
+
+/** Returns the parent's shareable invite code, generating a unique one on first use. */
+export async function getOrCreateInviteCode(parentId: string): Promise<string> {
+  const user = await User.findById(parentId);
+  if (!user) throw new Error('User not found');
+  if (user.parent_invite_code) return user.parent_invite_code;
+
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const code = generateInviteCode();
+    if (await User.exists({ parent_invite_code: code })) continue;
+    user.parent_invite_code = code;
+    await user.save();
+    return code;
+  }
+  throw new Error('Could not generate a unique invite code');
+}
 
 /**
  * CRITICAL FIX: Query parent_child_links table via repo.

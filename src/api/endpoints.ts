@@ -75,6 +75,7 @@ export const achievementsApi = {
 
 export const parentPortalApi = {
   getChildren: () => apiFetch<ApiParentChild[]>('/api/parent-portal/children'),
+  getInviteCode: () => apiFetch<{ code: string }>('/api/parent-portal/invite-code'),
   addChild: (nickname: string, troopCode?: string) => apiFetch<ApiParentChild[]>('/api/parent-portal/children', { method: 'POST', body: JSON.stringify({ nickname, ...(troopCode ? { troopCode } : {}) }) }),
   getWeeklySummary: () => apiFetch<ApiWeeklySummary>('/api/parent-portal/weekly-summary'),
   getDashboard: () => apiFetch<ApiParentDashboard>('/api/parent-portal/dashboard'),
@@ -119,7 +120,7 @@ export const scoutAuthApi = {
     scoutFetch<{ token: string; user: ApiUser }>('/api/scout-auth/login', { method: 'POST', body: JSON.stringify(data) }),
   createScout: (data: { nickname: string; pin: string; badgeFocus?: string }) =>
     scoutFetch<{ id: string; nickname: string; troopCode: string }>('/api/scout-auth/create-scout', { method: 'POST', body: JSON.stringify(data) }),
-  selfSignup: (data: { username: string; passphrase: string; reason?: string }) =>
+  selfSignup: (data: { username: string; passphrase: string; reason?: string; inviteCode?: string }) =>
     scoutFetch<{ token: string; user: ApiUser }>('/api/scout-auth/signup', { method: 'POST', body: JSON.stringify(data) }),
   selfLogin: (data: { username: string; passphrase: string }) =>
     scoutFetch<{ token: string; user: ApiUser }>('/api/scout-auth/login-username', { method: 'POST', body: JSON.stringify(data) }),

@@ -32,6 +32,20 @@ export async function getChildren(
   }
 }
 
+export async function getInviteCode(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const code = await parentPortalService.getOrCreateInviteCode(req.user.id);
+    return res.json({ code });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function addChild(
   req: Request,
   res: Response,

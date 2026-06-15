@@ -39,6 +39,7 @@ const selfSignupSchema = z.object({
     .regex(/^[a-zA-Z0-9 _-]+$/, 'Use letters, numbers, spaces, - or _'),
   passphrase: passphraseSchema,
   reason: z.string().max(300).optional(),
+  inviteCode: z.string().min(4).max(12).optional(),
 });
 
 const selfLoginSchema = z.object({
