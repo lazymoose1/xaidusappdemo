@@ -150,14 +150,18 @@ const LeaderAuthPage = () => {
         )}
         <CardHeader className="space-y-2 pb-4">
           <Link
-            to="/auth"
+            to="/welcome"
             className="text-sm text-muted-foreground hover:text-primary transition-colors"
           >
             ← Back
           </Link>
-          <div className="flex justify-center">
+          <Link
+            to="/welcome"
+            className="mx-auto flex justify-center rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            aria-label="Back to sign-in options"
+          >
             <BrandWordmark />
-          </div>
+          </Link>
           <CardTitle className="text-2xl sm:text-3xl font-serif text-center text-foreground break-words">
             Welcome to Xaidus
           </CardTitle>

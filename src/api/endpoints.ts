@@ -119,6 +119,10 @@ export const scoutAuthApi = {
     scoutFetch<{ token: string; user: ApiUser }>('/api/scout-auth/login', { method: 'POST', body: JSON.stringify(data) }),
   createScout: (data: { nickname: string; pin: string; badgeFocus?: string }) =>
     scoutFetch<{ id: string; nickname: string; troopCode: string }>('/api/scout-auth/create-scout', { method: 'POST', body: JSON.stringify(data) }),
+  selfSignup: (data: { username: string; passphrase: string; reason?: string }) =>
+    scoutFetch<{ token: string; user: ApiUser }>('/api/scout-auth/signup', { method: 'POST', body: JSON.stringify(data) }),
+  selfLogin: (data: { username: string; passphrase: string }) =>
+    scoutFetch<{ token: string; user: ApiUser }>('/api/scout-auth/login-username', { method: 'POST', body: JSON.stringify(data) }),
 };
 
 export const scoutApi = {

@@ -17,8 +17,9 @@ export interface IUser extends Document {
   social_ids?: Record<string, any>;
   // Scout-specific fields
   is_scout_account?: boolean;   // true = PIN-auth scout (no Supabase account)
-  scout_pin_hash?: string;      // bcrypt hash of 4–6 digit PIN
-  troop_code?: string;          // which troop this scout belongs to
+  scout_pin_hash?: string;      // bcrypt hash of PIN or self-signup passphrase
+  troop_code?: string;          // which troop this scout belongs to ('SELF' = self-signup)
+  signup_reason?: string;       // self-signup teen's stated motivation
   // Rewards
   is_moova?: boolean;
   moova_earned_at?: Date;
@@ -46,6 +47,7 @@ const userSchema = new Schema<IUser>(
     is_scout_account: { type: Boolean, default: false },
     scout_pin_hash: String,
     troop_code: String,
+    signup_reason: String,
     // Rewards
     is_moova: { type: Boolean, default: false },
     moova_earned_at: Date,

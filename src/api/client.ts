@@ -66,6 +66,29 @@ if (!DEMO_MODE) {
   });
 }
 
+const SCOUT_TOKEN_KEY = 'scout_token';
+
+// A scout JWT that the server rejects (expired, or signed with a rotated
+// SCOUT_JWT_SECRET) is permanently dead — every later request will 401. Clear it
+// once and send the youth back to the role chooser to sign in again, instead of
+// letting pollers hammer the API in a 401 loop.
+let _redirectingForAuthFailure = false;
+function handleScoutAuthFailure() {
+  if (_redirectingForAuthFailure) return;
+  _redirectingForAuthFailure = true;
+  try {
+    localStorage.removeItem(SCOUT_TOKEN_KEY);
+  } catch {
+    /* ignore storage errors */
+  }
+  if (typeof window !== 'undefined') {
+    const { pathname } = window.location;
+    if (pathname !== '/welcome' && pathname !== '/auth') {
+      window.location.assign('/welcome?reason=session-expired');
+    }
+  }
+}
+
 // Main app client — hits VITE_API_BASE and sends the active session token.
 // PIN-auth youth use scout_token; email/password users use the Supabase JWT.
 export async function apiFetch<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
@@ -105,6 +128,9 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
 
   const response = await fetch(url, { ...options, headers });
   if (!response.ok) {
+    if (response.status === 401 && authSource === 'scout-jwt') {
+      handleScoutAuthFailure();
+    }
     const data = await response.json().catch(() => ({}));
     const errMsg = (data && typeof data === 'object' && 'error' in data) ? String((data as { error: unknown }).error) : response.statusText;
     console.warn('[apiFetch] error', response.status, url, errMsg);
@@ -130,6 +156,9 @@ export async function scoutFetch<T = unknown>(path: string, options: RequestInit
 
   const response = await fetch(url, { ...options, headers });
   if (!response.ok) {
+    if (response.status === 401 && scoutToken) {
+      handleScoutAuthFailure();
+    }
     const data = await response.json().catch(() => ({}));
     const errMsg = (data && typeof data === 'object' && 'error' in data) ? String((data as { error: unknown }).error) : response.statusText;
     throw new Error(errMsg);

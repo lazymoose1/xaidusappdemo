@@ -23,6 +23,8 @@ interface AuthContextType {
   signUpLeader: (email: string, password: string, displayName?: string, leaderInviteCode?: string, organizationType?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   scoutSignIn: (troopCode: string, nickname: string, pin: string) => Promise<{ error: Error | null }>;
+  scoutSelfSignUp: (username: string, passphrase: string, reason?: string) => Promise<{ error: Error | null }>;
+  scoutSelfSignIn: (username: string, passphrase: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -242,6 +244,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Shared session setup for PIN/passphrase youth (no Supabase account).
+  const establishScoutSession = (token: string, scoutUser: ApiUser) => {
+    localStorage.setItem(SCOUT_TOKEN_KEY, token);
+    setUser({
+      ...scoutUser,
+      archetype: normalizeArchetype(scoutUser?.archetype || 'scout'),
+      isScoutAccount: scoutUser.isScoutAccount ?? true,
+      isScoutMember: scoutUser.isScoutMember ?? false,
+    });
+    setProfileStatus('loaded');
+  };
+
+  const scoutSelfSignUp = async (username: string, passphrase: string, reason?: string): Promise<{ error: Error | null }> => {
+    try {
+      const { token, user: scoutUser } = await scoutAuthApi.selfSignup({ username, passphrase, reason });
+      establishScoutSession(token, scoutUser);
+      return { error: null };
+    } catch (err) {
+      return { error: err instanceof Error ? err : new Error('Sign up failed') };
+    }
+  };
+
+  const scoutSelfSignIn = async (username: string, passphrase: string): Promise<{ error: Error | null }> => {
+    try {
+      const { token, user: scoutUser } = await scoutAuthApi.selfLogin({ username, passphrase });
+      establishScoutSession(token, scoutUser);
+      return { error: null };
+    } catch (err) {
+      return { error: err instanceof Error ? err : new Error('Login failed') };
+    }
+  };
+
   const signOut = async () => {
     if (DEMO_MODE) {
       setUser(null);
@@ -264,7 +298,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const contextValue: AuthContextType = {
     user, session, loading, profileStatus, retryProfile,
-    signUp, signUpParent, signUpLeader, signIn, scoutSignIn, signOut, refreshProfile,
+    signUp, signUpParent, signUpLeader, signIn, scoutSignIn, scoutSelfSignUp, scoutSelfSignIn, signOut, refreshProfile,
   };
 
   // Profile-loading gate: while a Supabase session exists but the backend profile
