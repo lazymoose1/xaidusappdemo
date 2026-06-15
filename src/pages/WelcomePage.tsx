@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { GraduationCap, Heart, Users, ArrowRight } from "lucide-react";
 import { useAuth } from "@/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,8 @@ const ROLE_CARDS: RoleCard[] = [
 
 const WelcomePage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const sessionExpired = searchParams.get("reason") === "session-expired";
   const { user } = useAuth();
 
   useEffect(() => {
@@ -68,6 +70,11 @@ const WelcomePage = () => {
             <CardDescription className="text-sm text-muted-foreground">
               Choose how you’re joining Xaidus.
             </CardDescription>
+            {sessionExpired && (
+              <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+                Your session expired. Please sign in again to continue.
+              </p>
+            )}
           </div>
         </CardHeader>
 
