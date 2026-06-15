@@ -1,4 +1,4 @@
-import { createContext, useContext, useCallback, useEffect, useState } from 'react';
+import { createContext, useContext, useCallback, useEffect, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { normalizeArchetype, DEFAULT_ARCHETYPE } from '@/lib/archetypes';
@@ -49,6 +49,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // profileStatus is separate from loading — loading covers the initial session check,
   // profileStatus covers the async backend profile fetch that follows.
   const [profileStatus, setProfileStatus] = useState<ProfileStatus>('idle');
+
+  // While an explicit email/password signup is registering the profile with its
+  // correct role, suppress the SIGNED_IN auto-fetch. Otherwise getMe races ahead
+  // and auto-provisions a default 'teen' profile, and because role can never be
+  // upgraded afterward, parents/leaders get stuck as teens.
+  const signupInFlightRef = useRef(false);
 
   // Fetch the real profile from the backend. Never infers a role — only sets user
   // once the backend confirms it. On failure, sets error state instead of a fallback.
@@ -142,6 +148,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       // SIGNED_IN (and any other event that carries a new session).
+      // During an explicit signup, the signup method registers the profile with
+      // the correct role and sets the user itself — skip the auto-fetch so getMe
+      // doesn't auto-create a default 'teen' profile first.
+      if (signupInFlightRef.current) return;
       // Clear any stale profile and fetch the real one from the backend.
       setUser(null);
       fetchProfile();
@@ -160,23 +170,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setProfileStatus('loaded');
       return { error: null };
     }
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) return { error };
-    if (!data.session) {
-      return {
-        error: new Error(
-          'This email may already have a sign-in. Use Sign in instead, or check your email to finish confirming the account.',
-        ),
-      };
-    }
+    signupInFlightRef.current = true;
     try {
-      const profile = await authApi.registerProfile({ displayName, role: 'teen', organizationType });
-      setUser({ ...profile, archetype: normalizeArchetype(profile?.archetype) });
-      setProfileStatus('loaded');
-    } catch (err) {
-      console.warn('Profile registration failed after signup:', err);
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) return { error };
+      if (!data.session) {
+        return {
+          error: new Error(
+            'This email may already have a sign-in. Use Sign in instead, or check your email to finish confirming the account.',
+          ),
+        };
+      }
+      try {
+        const profile = await authApi.registerProfile({ displayName, role: 'teen', organizationType });
+        setUser({ ...profile, archetype: normalizeArchetype(profile?.archetype) });
+        setProfileStatus('loaded');
+      } catch (err) {
+        console.warn('Profile registration failed after signup:', err);
+      }
+      return { error: null };
+    } finally {
+      signupInFlightRef.current = false;
     }
-    return { error: null };
   };
 
   const signUpParent = async (email: string, password: string, displayName?: string, childName?: string, organizationType?: string): Promise<{ error: Error | null }> => {
@@ -186,31 +201,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return { error: null };
     }
     localStorage.removeItem(SCOUT_TOKEN_KEY);
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) return { error };
+    signupInFlightRef.current = true;
     try {
-      const profile = await authApi.registerProfile({ displayName, role: 'parent', childName, organizationType });
-      setUser({ ...profile, archetype: normalizeArchetype(profile?.archetype) });
-      setProfileStatus('loaded');
-    } catch (err) {
-      console.warn('Profile registration failed after parent signup:', err);
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) return { error };
+      try {
+        const profile = await authApi.registerProfile({ displayName, role: 'parent', childName, organizationType });
+        setUser({ ...profile, archetype: normalizeArchetype(profile?.archetype) });
+        setProfileStatus('loaded');
+      } catch (err) {
+        console.warn('Profile registration failed after parent signup:', err);
+      }
+      return { error: null };
+    } finally {
+      signupInFlightRef.current = false;
     }
-    return { error: null };
   };
 
   const signUpLeader = async (email: string, password: string, displayName?: string, leaderInviteCode?: string, organizationType?: string): Promise<{ error: Error | null }> => {
     localStorage.removeItem(SCOUT_TOKEN_KEY);
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) return { error };
+    signupInFlightRef.current = true;
     try {
-      const profile = await authApi.registerProfile({ displayName, role: 'scout_leader', leaderInviteCode, organizationType });
-      setUser({ ...profile, archetype: normalizeArchetype(profile?.archetype) });
-      setProfileStatus('loaded');
-    } catch (err) {
-      // Surface backend errors (e.g. invalid invite code) so the UI can show them.
-      return { error: err instanceof Error ? err : new Error('Leader profile setup failed') };
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) return { error };
+      try {
+        const profile = await authApi.registerProfile({ displayName, role: 'scout_leader', leaderInviteCode, organizationType });
+        setUser({ ...profile, archetype: normalizeArchetype(profile?.archetype) });
+        setProfileStatus('loaded');
+      } catch (err) {
+        // Surface backend errors (e.g. invalid invite code) so the UI can show them.
+        return { error: err instanceof Error ? err : new Error('Leader profile setup failed') };
+      }
+      return { error: null };
+    } finally {
+      signupInFlightRef.current = false;
     }
-    return { error: null };
   };
 
   const signIn = async (email: string, password: string): Promise<{ error: Error | null }> => {
