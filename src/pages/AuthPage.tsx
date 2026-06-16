@@ -31,6 +31,7 @@ const AuthPage = () => {
   const [username, setUsername] = useState("");
   const [passphrase, setPassphrase] = useState("");
   const [reason, setReason] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [showPassphrase, setShowPassphrase] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -60,7 +61,7 @@ const AuthPage = () => {
     }
     setLoading(true);
     try {
-      const { error } = await scoutSelfSignUp(username.trim(), passphrase.trim(), reason.trim() || undefined);
+      const { error } = await scoutSelfSignUp(username.trim(), passphrase.trim(), reason.trim() || undefined, inviteCode.trim() || undefined);
       if (error) {
         toast({ title: "Sign up failed", description: error.message, variant: "destructive" });
         return;
@@ -201,6 +202,7 @@ const AuthPage = () => {
                 <div className="space-y-2">
                   <Label htmlFor="username">Username</Label>
                   <Input id="username" placeholder="Pick a username" value={username} onChange={(e) => setUsername(e.target.value)} disabled={loading} />
+                  <p className="text-xs text-muted-foreground">You can use a username you already use on other platforms.</p>
                 </div>
                 {passphraseField}
                 <p className="text-xs text-muted-foreground">Use at least two words so it's easy to remember but hard to guess.</p>
@@ -215,6 +217,18 @@ const AuthPage = () => {
                     disabled={loading}
                   />
                   <p className="text-xs text-muted-foreground">We'll turn this into your first goal.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="inviteCode">Parent invite code <span className="font-normal text-muted-foreground">(optional)</span></Label>
+                  <Input
+                    id="inviteCode"
+                    placeholder="e.g., 7KQ4PX"
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                    disabled={loading}
+                    autoCapitalize="characters"
+                  />
+                  <p className="text-xs text-muted-foreground">Got a code from your parent? Enter it to link your accounts.</p>
                 </div>
                 <Button type="submit" className="w-full h-11 font-semibold bg-accent hover:bg-accent/90 text-accent-foreground" disabled={loading}>
                   Create my account

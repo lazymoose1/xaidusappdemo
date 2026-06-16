@@ -20,6 +20,7 @@ export interface IUser extends Document {
   scout_pin_hash?: string;      // bcrypt hash of PIN or self-signup passphrase
   troop_code?: string;          // which troop this scout belongs to ('SELF' = self-signup)
   signup_reason?: string;       // self-signup teen's stated motivation
+  parent_invite_code?: string;  // parent's shareable code; teens enter it at signup to link
   // Rewards
   is_moova?: boolean;
   moova_earned_at?: Date;
@@ -48,6 +49,7 @@ const userSchema = new Schema<IUser>(
     scout_pin_hash: String,
     troop_code: String,
     signup_reason: String,
+    parent_invite_code: { type: String, unique: true, sparse: true },
     // Rewards
     is_moova: { type: Boolean, default: false },
     moova_earned_at: Date,

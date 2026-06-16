@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { User, Troop, Goal, writeAuditLog } from '../models';
+import * as parentChildLinkRepo from '../repositories/parent-child-link.repo';
 import {
   hashPin,
   verifyPin,
@@ -62,10 +63,11 @@ export async function scoutLogin(req: Request, res: Response, next: NextFunction
  */
 export async function selfSignup(req: Request, res: Response, next: NextFunction) {
   try {
-    const { username, passphrase, reason } = req.body as {
+    const { username, passphrase, reason, inviteCode } = req.body as {
       username: string;
       passphrase: string;
       reason?: string;
+      inviteCode?: string;
     };
 
     const syntheticEmail = scoutSyntheticEmail(username, SELF_SIGNUP_TROOP);
@@ -73,6 +75,17 @@ export async function selfSignup(req: Request, res: Response, next: NextFunction
     const existing = await User.findOne({ email: syntheticEmail }).lean();
     if (existing) {
       return res.status(409).json({ error: 'That username is taken. Try another.' });
+    }
+
+    // Resolve the parent invite code before creating anything so an invalid code
+    // never leaves an orphaned account.
+    let parent: { _id: unknown } | null = null;
+    const trimmedCode = (inviteCode || '').trim().toUpperCase();
+    if (trimmedCode) {
+      parent = await User.findOne({ parent_invite_code: trimmedCode, role: 'parent' }).lean();
+      if (!parent) {
+        return res.status(400).json({ error: 'That invite code is not valid. Check it with your parent.' });
+      }
     }
 
     const pinHash = await hashPin(passphrase);
@@ -101,6 +114,13 @@ export async function selfSignup(req: Request, res: Response, next: NextFunction
         completed: false,
         source: 'signup',
       });
+    }
+
+    // Link to the parent whose invite code was used.
+    if (parent) {
+      await parentChildLinkRepo
+        .create((parent._id as any).toString(), (scout._id as any).toString())
+        .catch(() => {});
     }
 
     const token = issueScoutJwt({
