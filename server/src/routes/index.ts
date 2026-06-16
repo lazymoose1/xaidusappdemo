@@ -20,6 +20,7 @@ import rewardsRoutes from './rewards';
 import forumRoutes from './forum';
 import notificationsRoutes from './notifications';
 import feedbackRoutes from './feedback';
+import adminRoutes from './admin';
 import {
   uploadLimiter,
   cronLimiter,
@@ -29,6 +30,7 @@ import {
 
 export const apiRouter = Router();
 
+apiRouter.use('/admin', adminRoutes);
 apiRouter.use('/auth', authRoutes);
 apiRouter.use('/goals', goalsRoutes);
 apiRouter.use('/posts', postsRoutes);
