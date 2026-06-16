@@ -55,6 +55,10 @@ const AuthPage = () => {
       toast({ title: "Pick a username", description: "Use at least 2 characters.", variant: "destructive" });
       return;
     }
+    if (!/^[a-zA-Z0-9 _-]+$/.test(username.trim())) {
+      toast({ title: "Check your username", description: "Use only letters, numbers, spaces, hyphens, or underscores.", variant: "destructive" });
+      return;
+    }
     if (!isValidPassphrase(passphrase)) {
       toast({ title: "Make it a passphrase", description: "Use at least two words (e.g., “blue mountain trail”).", variant: "destructive" });
       return;
