@@ -14,11 +14,29 @@ export interface ScoutJwtPayload {
   nickname: string;
 }
 
-/** Generate a synthetic internal email for a scout (never a real account). */
-export function scoutSyntheticEmail(nickname: string, troopCode: string): string {
+// Synthetic emails are internal placeholders for PIN/passphrase youth accounts
+// (never real mailboxes). The local part always carries a `.<troopCode>` suffix
+// so it can't collide with a real xaidus.co address.
+const SCOUT_EMAIL_DOMAIN = 'xaidus.co';
+// Domains used by accounts created before the switch — still honored on lookup
+// so existing youth keep logging in.
+const LEGACY_SCOUT_EMAIL_DOMAINS = ['scouts.internal'];
+
+function scoutEmailLocalPart(nickname: string, troopCode: string): string {
   const slug = nickname.toLowerCase().replace(/[^a-z0-9]/g, '');
   const tc = troopCode.toLowerCase();
-  return `${slug}.${tc}@scouts.internal`;
+  return `${slug}.${tc}`;
+}
+
+/** Generate the synthetic email for a scout (never a real account). */
+export function scoutSyntheticEmail(nickname: string, troopCode: string): string {
+  return `${scoutEmailLocalPart(nickname, troopCode)}@${SCOUT_EMAIL_DOMAIN}`;
+}
+
+/** Current + legacy synthetic emails for the same identity, for lookups/uniqueness. */
+export function scoutSyntheticEmailCandidates(nickname: string, troopCode: string): string[] {
+  const local = scoutEmailLocalPart(nickname, troopCode);
+  return [`${local}@${SCOUT_EMAIL_DOMAIN}`, ...LEGACY_SCOUT_EMAIL_DOMAINS.map((d) => `${local}@${d}`)];
 }
 
 export async function hashPin(pin: string): Promise<string> {

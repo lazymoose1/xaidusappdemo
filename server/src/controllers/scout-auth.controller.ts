@@ -6,6 +6,7 @@ import {
   verifyPin,
   issueScoutJwt,
   scoutSyntheticEmail,
+  scoutSyntheticEmailCandidates,
 } from '../services/scout-auth.service';
 
 // Self-signup teens have no leader/troop; this sentinel namespaces their
@@ -24,8 +25,10 @@ export async function scoutLogin(req: Request, res: Response, next: NextFunction
     const troop = await Troop.findOne({ troop_code: troopCode.toUpperCase() }).lean();
     if (!troop) return res.status(401).json({ error: 'Invalid troop code' });
 
-    const syntheticEmail = scoutSyntheticEmail(nickname, troopCode);
-    const scout = await User.findOne({ email: syntheticEmail, is_scout_account: true }).lean();
+    const scout = await User.findOne({
+      email: { $in: scoutSyntheticEmailCandidates(nickname, troopCode) },
+      is_scout_account: true,
+    }).lean();
     if (!scout) return res.status(401).json({ error: 'Youth not found' });
     if (!scout.scout_pin_hash) return res.status(401).json({ error: 'Account not set up' });
 
@@ -72,7 +75,9 @@ export async function selfSignup(req: Request, res: Response, next: NextFunction
 
     const syntheticEmail = scoutSyntheticEmail(username, SELF_SIGNUP_TROOP);
 
-    const existing = await User.findOne({ email: syntheticEmail }).lean();
+    const existing = await User.findOne({
+      email: { $in: scoutSyntheticEmailCandidates(username, SELF_SIGNUP_TROOP) },
+    }).lean();
     if (existing) {
       return res.status(409).json({ error: 'That username is taken. Try another.' });
     }
@@ -155,8 +160,10 @@ export async function selfLogin(req: Request, res: Response, next: NextFunction)
   try {
     const { username, passphrase } = req.body as { username: string; passphrase: string };
 
-    const syntheticEmail = scoutSyntheticEmail(username, SELF_SIGNUP_TROOP);
-    const scout = await User.findOne({ email: syntheticEmail, is_scout_account: true }).lean();
+    const scout = await User.findOne({
+      email: { $in: scoutSyntheticEmailCandidates(username, SELF_SIGNUP_TROOP) },
+      is_scout_account: true,
+    }).lean();
     if (!scout || !scout.scout_pin_hash) {
       return res.status(401).json({ error: 'Username or passphrase is incorrect' });
     }
