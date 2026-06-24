@@ -80,7 +80,7 @@ describe('Reminders routes', () => {
         .post('/api/reminders/g1/respond')
         .send({ response: 'invalid' });
       expect(res.status).toBe(400);
-      expect(res.body).toHaveProperty('error', 'Invalid request');
+      expect(res.body).toHaveProperty('details');
     });
 
     it('returns 400 for missing response', async () => {

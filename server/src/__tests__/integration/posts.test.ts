@@ -80,7 +80,7 @@ describe('Posts routes', () => {
         .post('/api/posts')
         .send({});
       expect(res.status).toBe(400);
-      expect(res.body).toHaveProperty('error', 'Invalid request');
+      expect(res.body).toHaveProperty('details');
     });
 
     it('returns 400 for empty content', async () => {
@@ -119,7 +119,7 @@ describe('Posts routes', () => {
         .post('/api/posts/p1/comments')
         .send({});
       expect(res.status).toBe(400);
-      expect(res.body).toHaveProperty('error', 'Invalid request');
+      expect(res.body).toHaveProperty('details');
     });
 
     it('returns 401 without auth', async () => {

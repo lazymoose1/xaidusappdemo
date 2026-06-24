@@ -70,7 +70,7 @@ describe('Goals routes', () => {
         .post('/api/goals')
         .send({});
       expect(res.status).toBe(400);
-      expect(res.body).toHaveProperty('error', 'Invalid request');
+      expect(res.body).toHaveProperty('details');
     });
 
     it('returns 400 for empty title', async () => {
@@ -109,7 +109,7 @@ describe('Goals routes', () => {
         .post('/api/goals/g1/checkin')
         .send({ status: 'invalid' });
       expect(res.status).toBe(400);
-      expect(res.body).toHaveProperty('error', 'Invalid request');
+      expect(res.body).toHaveProperty('details');
     });
   });
 
