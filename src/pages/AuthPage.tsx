@@ -25,7 +25,7 @@ function isValidPassphrase(value: string): boolean {
 
 const AuthPage = () => {
   const navigate = useNavigate();
-  const { user, scoutSelfSignUp, scoutSelfSignIn, scoutSignIn } = useAuth();
+  const { user, scoutSelfSignUp, scoutSelfSignIn, scoutSignIn, signIn } = useAuth();
 
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [username, setUsername] = useState("");
@@ -40,6 +40,11 @@ const AuthPage = () => {
   const [troopCode, setTroopCode] = useState("");
   const [nickname, setNickname] = useState("");
   const [pin, setPin] = useState("");
+
+  // Legacy: teens who originally registered with email + password.
+  const [showEmailSignIn, setShowEmailSignIn] = useState(false);
+  const [email, setEmail] = useState("");
+  const [emailPassword, setEmailPassword] = useState("");
 
   useEffect(() => {
     document.title = "Xaidus | Teen Sign In";
@@ -105,6 +110,24 @@ const AuthPage = () => {
       const { error } = await scoutSignIn(troopCode.trim(), nickname.trim(), pin);
       if (error) {
         toast({ title: "Sign in failed", description: error.message, variant: "destructive" });
+        return;
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !emailPassword) {
+      toast({ title: "Enter your details", description: "Email and password are required.", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await signIn(email.trim(), emailPassword);
+      if (error) {
+        toast({ title: "Sign in failed", description: "We couldn't sign you in with those details.", variant: "destructive" });
         return;
       }
     } finally {
@@ -283,6 +306,33 @@ const AuthPage = () => {
               </div>
               <Button type="submit" variant="outline" className="w-full h-11 font-semibold" disabled={loading}>
                 Enter group
+              </Button>
+            </form>
+          )}
+
+          {/* Legacy: email + password accounts created before username sign-in */}
+          <div className="text-center">
+            <button
+              type="button"
+              className="text-xs text-muted-foreground hover:text-primary hover:underline"
+              onClick={() => setShowEmailSignIn((v) => !v)}
+            >
+              {showEmailSignIn ? "Hide email sign in" : "Signed up with an email before?"}
+            </button>
+          </div>
+
+          {showEmailSignIn && (
+            <form className="space-y-3 rounded-[1.4rem] border border-white/10 bg-background/75 p-4" onSubmit={handleEmailLogin}>
+              <div className="space-y-2">
+                <Label htmlFor="legacy-email">Email</Label>
+                <Input id="legacy-email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="legacy-password">Password</Label>
+                <Input id="legacy-password" type="password" placeholder="Your password" value={emailPassword} onChange={(e) => setEmailPassword(e.target.value)} disabled={loading} />
+              </div>
+              <Button type="submit" variant="outline" className="w-full h-11 font-semibold" disabled={loading}>
+                Sign in with email
               </Button>
             </form>
           )}

@@ -51,6 +51,3 @@ server/.env.production
 
 # Prisma
 server/prisma/migrations/*/migration_lock.toml
-
-#Home 
-/Users/ceolazymoose/dusapp/dus-pastel-wave/SECURITY_REMEDIATION_GUIDE.md
