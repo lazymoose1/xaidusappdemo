@@ -279,6 +279,38 @@ const AuthPage = () => {
             </>
           )}
 
+          {/* Legacy: email + password accounts created before username sign-in.
+              Kept visible (not buried) so returning email users can find it. */}
+          <div className="flex items-center gap-3 pt-1">
+            <span className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground">or</span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full h-11 font-semibold"
+            onClick={() => setShowEmailSignIn((v) => !v)}
+          >
+            {showEmailSignIn ? "Hide email sign in" : "Sign in with email"}
+          </Button>
+
+          {showEmailSignIn && (
+            <form className="space-y-3 rounded-[1.4rem] border border-white/10 bg-background/75 p-4" onSubmit={handleEmailLogin}>
+              <div className="space-y-2">
+                <Label htmlFor="legacy-email">Email</Label>
+                <Input id="legacy-email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="legacy-password">Password</Label>
+                <Input id="legacy-password" type="password" placeholder="Your password" value={emailPassword} onChange={(e) => setEmailPassword(e.target.value)} disabled={loading} />
+              </div>
+              <Button type="submit" className="w-full h-11 font-semibold bg-accent hover:bg-accent/90 text-accent-foreground" disabled={loading}>
+                Sign in with email
+              </Button>
+            </form>
+          )}
+
           {/* Secondary: leader-provisioned youth */}
           <div className="border-t border-border pt-3 text-center">
             <button
@@ -306,33 +338,6 @@ const AuthPage = () => {
               </div>
               <Button type="submit" variant="outline" className="w-full h-11 font-semibold" disabled={loading}>
                 Enter group
-              </Button>
-            </form>
-          )}
-
-          {/* Legacy: email + password accounts created before username sign-in */}
-          <div className="text-center">
-            <button
-              type="button"
-              className="text-xs text-muted-foreground hover:text-primary hover:underline"
-              onClick={() => setShowEmailSignIn((v) => !v)}
-            >
-              {showEmailSignIn ? "Hide email sign in" : "Signed up with an email before?"}
-            </button>
-          </div>
-
-          {showEmailSignIn && (
-            <form className="space-y-3 rounded-[1.4rem] border border-white/10 bg-background/75 p-4" onSubmit={handleEmailLogin}>
-              <div className="space-y-2">
-                <Label htmlFor="legacy-email">Email</Label>
-                <Input id="legacy-email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="legacy-password">Password</Label>
-                <Input id="legacy-password" type="password" placeholder="Your password" value={emailPassword} onChange={(e) => setEmailPassword(e.target.value)} disabled={loading} />
-              </div>
-              <Button type="submit" variant="outline" className="w-full h-11 font-semibold" disabled={loading}>
-                Sign in with email
               </Button>
             </form>
           )}
