@@ -1,13 +1,16 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth';
-import { authLimiter } from '../middleware/rate-limiter';
+import {
+  authLimiter,
+  signupLimiter,
+  loginAccountLimiter,
+  loginOrgLimiter,
+} from '../middleware/rate-limiter';
 import { validate } from '../middleware/validate';
 import * as scoutAuthController from '../controllers/scout-auth.controller';
 import { z } from 'zod';
 
 const router = Router();
-
-router.use(authLimiter);
 
 const loginSchema = z.object({
   troopCode: z.string().min(3).max(20),
@@ -47,16 +50,17 @@ const selfLoginSchema = z.object({
   passphrase: z.string().min(1).max(100),
 });
 
-// POST /api/scout-auth/login — public (no JWT required)
-router.post('/login', validate(loginSchema), scoutAuthController.scoutLogin);
+// POST /api/scout-auth/login — group code + nickname + PIN. Rate-limited per
+// account and per org (troop), not per IP, so shared school networks are fine.
+router.post('/login', loginOrgLimiter, loginAccountLimiter, validate(loginSchema), scoutAuthController.scoutLogin);
 
-// POST /api/scout-auth/signup — public self-service teen signup
-router.post('/signup', validate(selfSignupSchema), scoutAuthController.selfSignup);
+// POST /api/scout-auth/signup — public self-service teen signup (IP-keyed abuse block)
+router.post('/signup', signupLimiter, validate(selfSignupSchema), scoutAuthController.selfSignup);
 
-// POST /api/scout-auth/login-username — public login for self-signup teens
-router.post('/login-username', validate(selfLoginSchema), scoutAuthController.selfLogin);
+// POST /api/scout-auth/login-username — self-signup teen login, rate-limited per account
+router.post('/login-username', loginAccountLimiter, validate(selfLoginSchema), scoutAuthController.selfLogin);
 
-// POST /api/scout-auth/create-scout — leader only
-router.post('/create-scout', authMiddleware, validate(createScoutSchema), scoutAuthController.createScout);
+// POST /api/scout-auth/create-scout — leader only (authed); keep the general auth limiter
+router.post('/create-scout', authLimiter, authMiddleware, validate(createScoutSchema), scoutAuthController.createScout);
 
 export default router;

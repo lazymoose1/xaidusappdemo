@@ -148,6 +148,9 @@ vi.mock('../middleware/rate-limiter', async (importOriginal) => {
   return {
     generalLimiter: rateLimit(opts),
     authLimiter: rateLimit(opts),
+    signupLimiter: rateLimit(opts),
+    loginAccountLimiter: rateLimit(opts),
+    loginOrgLimiter: rateLimit(opts),
     aiLimiter: rateLimit(opts),
     uploadLimiter: rateLimit(opts),
     cronLimiter: rateLimit(opts),
