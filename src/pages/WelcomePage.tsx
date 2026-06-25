@@ -1,45 +1,22 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { GraduationCap, Heart, Users, ArrowRight } from "lucide-react";
 import { useAuth } from "@/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import BrandWordmark from "@/components/BrandWordmark";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
-type RoleCard = {
-  key: string;
-  title: string;
-  blurb: string;
-  to: string;
-  icon: typeof GraduationCap;
-};
-
-const ROLE_CARDS: RoleCard[] = [
-  {
-    key: "teen",
-    title: "Teen",
-    blurb: "Set one goal, get a next step you can actually do today.",
-    to: "/auth",
-    icon: GraduationCap,
-  },
-  {
-    key: "parent",
-    title: "Parent",
-    blurb: "See effort trends and goals — never private messages or monitoring.",
-    to: "/auth/parent",
-    icon: Heart,
-  },
-  {
-    key: "leader",
-    title: "Leader",
-    blurb: "Support your group with weekly resets and check-ins, role-based and logged.",
-    to: "/auth/leader",
-    icon: Users,
-  },
-];
+const ROLE_CARDS = [
+  { key: "teen", roleKey: "welcome.roleTeen", blurbKey: "welcome.blurbTeen", to: "/auth", icon: GraduationCap },
+  { key: "parent", roleKey: "welcome.roleParent", blurbKey: "welcome.blurbParent", to: "/auth/parent", icon: Heart },
+  { key: "leader", roleKey: "welcome.roleLeader", blurbKey: "welcome.blurbLeader", to: "/auth/leader", icon: Users },
+] as const;
 
 const WelcomePage = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const sessionExpired = searchParams.get("reason") === "session-expired";
   const { user } = useAuth();
@@ -59,27 +36,28 @@ const WelcomePage = () => {
     <div className="min-h-screen flex items-center justify-center bg-background px-3 py-6 sm:px-5 sm:py-8">
       <Card className="w-full max-w-md overflow-hidden border-white/10 shadow-strong">
         <CardHeader className="space-y-4 pb-4 pt-7 text-center">
-          <div className="flex justify-center">
+          <div className="flex items-center justify-between gap-2">
             <BrandWordmark />
+            <LanguageSwitcher />
           </div>
           <div className="space-y-2">
-            <p className="eyebrow">Teen-led. Trust-first.</p>
+            <p className="eyebrow">{t("common.tagline")}</p>
             <CardTitle className="text-2xl text-foreground normal-case tracking-[-0.02em]">
-              Log in or sign up
+              {t("welcome.title")}
             </CardTitle>
             <CardDescription className="text-sm text-muted-foreground">
-              Choose how you’re joining Xaidus.
+              {t("welcome.subtitle")}
             </CardDescription>
             {sessionExpired && (
               <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
-                Your session expired. Please sign in again to continue.
+                {t("welcome.sessionExpired")}
               </p>
             )}
           </div>
         </CardHeader>
 
         <CardContent className="space-y-3 pb-6">
-          {ROLE_CARDS.map(({ key, title, blurb, to, icon: Icon }) => (
+          {ROLE_CARDS.map(({ key, roleKey, blurbKey, to, icon: Icon }) => (
             <button
               key={key}
               type="button"
@@ -90,21 +68,23 @@ const WelcomePage = () => {
                 <Icon className="h-5 w-5" />
               </span>
               <span className="min-w-0 flex-1 basis-0">
-                <span className="block text-base font-semibold text-foreground">I’m a {title}</span>
-                <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">{blurb}</span>
+                <span className="block text-base font-semibold text-foreground">
+                  {t("welcome.imA", { role: t(roleKey) })}
+                </span>
+                <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">{t(blurbKey)}</span>
               </span>
               <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-accent" />
             </button>
           ))}
 
           <div className="flex items-center justify-center gap-1.5 pt-2 text-xs text-muted-foreground">
-            <span>Already have an account?</span>
+            <span>{t("welcome.haveAccount")}</span>
             <Button
               variant="link"
               className="h-auto p-0 text-xs text-accent"
               onClick={() => navigate("/auth")}
             >
-              Log in
+              {t("welcome.logIn")}
             </Button>
           </div>
         </CardContent>
