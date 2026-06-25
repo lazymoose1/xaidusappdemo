@@ -118,8 +118,10 @@ export const authApi = {
 export const scoutAuthApi = {
   login: (data: { troopCode: string; nickname: string; pin: string }) =>
     scoutFetch<{ token: string; user: ApiUser }>('/api/scout-auth/login', { method: 'POST', body: JSON.stringify(data) }),
+  // Leader-only: the route uses authMiddleware (Supabase JWT), so this must go
+  // through apiFetch (sends the leader's session token), not scoutFetch.
   createScout: (data: { nickname: string; pin: string; badgeFocus?: string }) =>
-    scoutFetch<{ id: string; nickname: string; troopCode: string }>('/api/scout-auth/create-scout', { method: 'POST', body: JSON.stringify(data) }),
+    apiFetch<{ id: string; nickname: string; troopCode: string }>('/api/scout-auth/create-scout', { method: 'POST', body: JSON.stringify(data) }),
   selfSignup: (data: { username: string; passphrase: string; reason?: string; inviteCode?: string }) =>
     scoutFetch<{ token: string; user: ApiUser }>('/api/scout-auth/signup', { method: 'POST', body: JSON.stringify(data) }),
   selfLogin: (data: { username: string; passphrase: string }) =>

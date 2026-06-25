@@ -36,9 +36,9 @@ const BADGE_FAMILIES = [
 ];
 
 const CREDENTIAL_TYPES = [
-  { value: "bronze_award", label: "Bronze Award", icon: "🥉", description: "Girl Scout Bronze Award completion" },
-  { value: "silver_award", label: "Silver Award", icon: "🥈", description: "Girl Scout Silver Award completion" },
-  { value: "gold_award", label: "Gold Award", icon: "🥇", description: "Girl Scout Gold Award completion" },
+  { value: "bronze_award", label: "Bronze Award", icon: "🥉", description: "Bronze Award completion" },
+  { value: "silver_award", label: "Silver Award", icon: "🥈", description: "Silver Award completion" },
+  { value: "gold_award", label: "Gold Award", icon: "🥇", description: "Gold Award completion" },
   { value: "badge_milestone", label: "Badge milestone", icon: "📛", description: "Official badge completion" },
   { value: "troop_award", label: "Troop award", icon: "⭐", description: "Leader-issued troop recognition" },
 ] as const;
