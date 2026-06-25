@@ -26,9 +26,24 @@ export type AiWrapperRequest = {
   };
   orgId?: string;
   ageGroup?: string;
+  /** BCP-47 language for the advice text, e.g. "en" or "es". */
+  language?: string;
   /** Optional summarized social context — never raw post content. */
   socialContext?: string;
 };
+
+// Read the user's chosen language (persisted by the i18n detector) without
+// importing the i18n module, so this stays decoupled. Falls back to the
+// browser language, then English.
+function resolveLanguage(): string {
+  try {
+    const stored = localStorage.getItem('xaidus_lang');
+    if (stored) return stored;
+  } catch {
+    /* ignore storage errors */
+  }
+  return (typeof navigator !== 'undefined' && navigator.language) || 'en';
+}
 
 // ─── Response shape ───────────────────────────────────────────────────────────
 
@@ -85,6 +100,7 @@ export async function callAiWrapper(payload: AiWrapperRequest): Promise<AiWrappe
       body: JSON.stringify({
         ...payload,
         ageGroup: payload.ageGroup ?? '14-18',
+        language: payload.language ?? resolveLanguage(),
       }),
       signal: controller.signal,
     });
